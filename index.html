@@ -1,0 +1,2856 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Access-Наставник</title>
+<!--
+  ==========================================================================
+  «Access-Наставник» — тематический чат-бот по СУБД Microsoft Access.
+  Автор курса: Индира Закировна, Жамбылский политехнический высший колледж.
+
+  Один файл: HTML + CSS + JavaScript. Работает в браузере без установки.
+  Лучше всего — Microsoft Edge (в нём есть естественные голоса Svetlana,
+  Dariya и Aigul) или Google Chrome.
+
+  Структура файла:
+    1. CSS-стили
+    2. HTML-разметка (шапка, меню, чат, окно настроек)
+    3. База знаний — блок <script type="text/plain" id="kb">
+       (чтобы добавить свой вопрос — скопируйте любой блок @@ ... и измените)
+    4. JavaScript: настройки, поиск, отрисовка, озвучка, ИИ, тест, практикум
+  ==========================================================================
+-->
+<style>
+/* ===================== 1. СТИЛИ ===================== */
+:root{
+  --blue:#1a56db; --blue-d:#0b3a75; --blue-l:#e8f0fe; --bg:#f3f6fb; --card:#fff;
+  --text:#1b2433; --muted:#5d6b82; --line:#dbe3ef; --ok:#15803d; --bad:#c62828;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+body{font-family:"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.55}
+button{font:inherit}
+.app{display:grid;grid-template-rows:auto 1fr;height:100vh;height:100dvh}
+
+/* --- шапка --- */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px clamp(12px,3vw,24px);
+  background:linear-gradient(90deg,var(--blue-d),var(--blue));color:#fff;box-shadow:0 2px 8px rgba(11,58,117,.25);z-index:2}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.brand h1{margin:0;font-size:20px;letter-spacing:.2px}
+.brand .sub{margin:0;font-size:12.5px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ava{width:38px;height:38px;flex:none;border-radius:50%;overflow:hidden;background:#dbe7ff}
+.ava.big{width:46px;height:46px;border:2px solid rgba(255,255,255,.7)}
+.ava svg{display:block;width:100%;height:100%}
+.top-actions{display:flex;gap:8px;flex:none}
+.icon-btn{width:40px;height:40px;border-radius:12px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-size:18px;cursor:pointer}
+.icon-btn:hover{background:rgba(255,255,255,.25)}
+.pill{height:40px;padding:0 12px;border-radius:12px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;cursor:pointer}
+
+/* --- основная сетка --- */
+.layout{display:grid;grid-template-columns:250px 1fr;min-height:0}
+.side{background:#fff;border-right:1px solid var(--line);padding:14px 10px;overflow:auto;display:flex;flex-direction:column;gap:12px}
+.side nav{display:flex;flex-direction:column;gap:4px}
+.side .cap{font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);padding:0 12px;margin-top:4px}
+.nav-btn{display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;border:0;background:none;border-radius:10px;color:var(--text);cursor:pointer;text-align:left}
+.nav-btn:hover{background:var(--blue-l)}
+.nav-btn.active{background:var(--blue);color:#fff}
+.nav-btn .ic{width:22px;text-align:center}
+.side-foot{margin-top:auto;font-size:12.5px;color:var(--muted);background:var(--bg);border-radius:12px;padding:10px 12px}
+.side-foot b{color:var(--blue-d)}
+
+.main{display:flex;flex-direction:column;min-height:0;min-width:0}
+.chat{flex:1;overflow-y:auto;padding:18px clamp(12px,3vw,32px);display:flex;flex-direction:column;gap:14px}
+
+/* --- сообщения --- */
+.msg{display:flex;gap:10px;max-width:920px;width:100%}
+.msg.user{justify-content:flex-end;margin-left:auto}
+.msg.user .bubble{background:var(--blue);color:#fff;border-radius:16px 16px 4px 16px;max-width:80%;padding:10px 14px;white-space:normal;word-wrap:break-word}
+.msg.bot .bubble{background:var(--card);border:1px solid var(--line);border-radius:4px 16px 16px 16px;padding:12px 16px;min-width:0;flex:1;box-shadow:0 1px 3px rgba(16,40,80,.06)}
+.msg.bot.speaking .bubble{border-color:#93b2ec;box-shadow:0 0 0 3px rgba(26,86,219,.12)}
+.content p{margin:6px 0}
+.content h4{margin:12px 0 6px;font-size:16px;color:var(--blue-d)}
+.content h4:first-child{margin-top:2px}
+.content ol,.content ul{margin:6px 0;padding-left:22px}
+.content li{margin:3px 0}
+.content code{background:#eef2f9;border:1px solid #dde5f2;border-radius:5px;padding:0 4px;font-family:Consolas,"Cascadia Mono",monospace;font-size:13.5px}
+.tip{background:#eef5ff;border-left:4px solid var(--blue);padding:8px 12px;border-radius:6px;margin:10px 0}
+.task{background:#fff8e6;border:1px dashed #e0a800;padding:10px 12px;border-radius:10px;margin-top:12px}
+.note{font-size:13.5px;color:var(--muted);margin-top:8px}
+.note p{margin:4px 0}
+
+/* таблицы */
+.tbl{overflow-x:auto;margin:8px 0;border-radius:8px}
+.tbl table{border-collapse:collapse;width:100%;font-size:14px;background:#fff}
+.tbl th,.tbl td{border:1px solid var(--line);padding:6px 9px;text-align:left;vertical-align:top}
+.tbl th{background:var(--blue-l);color:var(--blue-d)}
+
+/* блоки кода */
+.code{border:1px solid #cdd9ec;border-radius:10px;overflow:hidden;margin:10px 0;background:#f7f9fd}
+.code-h{display:flex;justify-content:space-between;align-items:center;background:#e6eefb;color:var(--blue-d);padding:5px 8px 5px 12px;font-size:12.5px;font-weight:600}
+.copy{border:1px solid #bcd0f0;background:#fff;color:var(--blue-d);border-radius:7px;padding:3px 10px;font-size:12.5px;cursor:pointer}
+.copy:hover{background:var(--blue);color:#fff}
+.code pre{margin:0;padding:12px 14px;overflow-x:auto;color:#1b2433;font:13px/1.6 Consolas,"Cascadia Mono","Courier New",monospace}
+.hl-k{color:#1a56db;font-weight:600}.hl-s{color:#b45309}.hl-c{color:#6b7a90;font-style:italic}
+
+/* подсветка произносимого предложения */
+.snt{transition:background .2s}
+.snt.now{background:#fff1a8;border-radius:4px;box-shadow:0 0 0 2px #fff1a8}
+.code.now,.tbl.now{outline:3px solid #f5c542;outline-offset:1px}
+
+/* кнопки под сообщением */
+.actions{display:flex;gap:6px;align-items:center;margin-top:10px;padding-top:8px;border-top:1px dashed var(--line)}
+.actions button{width:32px;height:30px;border:1px solid var(--line);background:#f7f9fd;border-radius:8px;cursor:pointer;color:var(--blue-d);font-size:13px}
+.actions button:hover{border-color:var(--blue)}
+.actions button.on{background:var(--blue-l);border-color:var(--blue)}
+.src{margin-left:auto;font-size:12px;color:var(--muted);text-align:right}
+
+/* чипсы-подсказки */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{border:1px solid #c7d6f2;background:#f4f8ff;color:var(--blue-d);border-radius:999px;padding:6px 12px;font-size:13.5px;cursor:pointer}
+.chip:hover{background:var(--blue);color:#fff;border-color:var(--blue)}
+.quick{display:flex;gap:8px;overflow-x:auto;padding:8px clamp(12px,3vw,32px);border-top:1px solid var(--line);background:#fff;scrollbar-width:thin}
+.quick .chip{white-space:nowrap}
+
+/* режим практикума */
+.mode-bar{background:#fff8e6;border-top:1px solid #f3d27a;padding:8px clamp(12px,3vw,32px);font-size:14px;display:flex;gap:10px;align-items:center}
+.mode-bar button{margin-left:auto}
+
+/* поле ввода */
+.composer{display:flex;gap:8px;align-items:flex-end;padding:8px clamp(12px,3vw,32px) 14px;background:#fff}
+.composer textarea{flex:1;resize:none;border:1px solid #c9d4e6;border-radius:12px;padding:10px 12px;font:inherit;max-height:140px;min-height:42px;outline:none;background:#fbfcff}
+.composer textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,86,219,.12)}
+.composer .icon-btn{color:var(--blue-d);background:var(--blue-l);border-color:#c7d6f2;flex:none;height:42px;width:42px}
+.send{height:42px;width:48px;flex:none;border:0;border-radius:12px;background:var(--blue);color:#fff;font-size:18px;cursor:pointer}
+.send:hover{background:var(--blue-d)}
+.composer #btnMic{background:#fff;border:2px solid var(--blue);color:var(--blue);font-size:19px}
+.composer #btnMic:hover{background:var(--blue-l)}
+.composer #btnMic.rec{background:#e53935;border-color:#e53935;color:#fff;animation:pulse 1s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 7px rgba(229,57,53,.18)}}
+
+/* голосовая панель: «слушаю…» и голосовой диалог */
+.voice-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px clamp(12px,3vw,32px);background:#eef5ff;border-top:1px solid #c7d6f2;font-size:14px}
+.voice-bar .vb-text{flex:1;min-width:160px;color:var(--blue-d)}
+.voice-bar .vb-text i{color:var(--muted);font-style:normal}
+.voice-bar label{display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--blue-d);white-space:nowrap}
+.voice-bar .btn-light{padding:5px 12px}
+.eq{display:inline-flex;align-items:flex-end;gap:3px;height:20px;width:31px;flex:none}
+.eq i{width:4px;height:6px;border-radius:2px;background:#9db3d9}
+.voice-bar.listening .eq i{background:#e53935;animation:eq .9s ease-in-out infinite}
+.eq i:nth-child(2){animation-delay:.15s}.eq i:nth-child(3){animation-delay:.3s}.eq i:nth-child(4){animation-delay:.45s}.eq i:nth-child(5){animation-delay:.6s}
+@keyframes eq{0%,100%{height:5px}50%{height:20px}}
+.mic-tag{font-size:12px;margin-right:6px;opacity:.9}
+.chip.hot{background:var(--blue);color:#fff;border-color:var(--blue);font-weight:600}
+
+/* тест */
+.q-head{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:10px}
+.q-bar{display:inline-block;width:140px;height:6px;background:var(--line);border-radius:6px;overflow:hidden}
+.q-bar i{display:block;height:100%;background:var(--blue)}
+.q-text{font-weight:600;font-size:15.5px}
+.q-opt{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;padding:9px 12px;border:1px solid var(--line);background:#fff;border-radius:10px;margin:6px 0;cursor:pointer;color:var(--text)}
+.q-opt:hover:not(:disabled){border-color:var(--blue);background:var(--blue-l)}
+.q-opt:disabled{cursor:default}
+.q-opt b{color:var(--blue);min-width:16px}
+.q-opt.right{background:#e7f6ec;border-color:var(--ok)}
+.q-opt.wrong{background:#fdeaea;border-color:var(--bad)}
+.q-expl{margin-top:8px}
+.q-head{flex-wrap:wrap}
+.q-topic{background:var(--blue-l);color:var(--blue-d);border-radius:999px;padding:1px 10px;font-weight:600}
+.q-score{margin-left:auto;font-weight:600;color:var(--blue-d)}
+.q-count{color:var(--blue-d)}
+
+/* регистрация на тест */
+.reg{display:grid;grid-template-columns:1fr 150px auto;gap:10px;align-items:end;margin:12px 0 4px}
+.reg label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+.reg input{padding:9px 10px;border:1px solid #c9d4e6;border-radius:10px;font:inherit;color:var(--text);background:#fff}
+.reg input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,86,219,.12)}
+.reg input:disabled,.reg button:disabled{opacity:.6}
+@media (max-width:600px){.reg{grid-template-columns:1fr}}
+
+/* журнал результатов */
+.res-tools{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:10px 0 6px}
+.res-tools .chip.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+.tbl table.res td{white-space:nowrap}
+.g5{color:var(--ok);font-weight:700}.g4{color:var(--blue);font-weight:700}.g3{color:#b45309;font-weight:700}.g2{color:var(--bad);font-weight:700}
+
+/* кнопки общего вида */
+.btn{background:var(--blue);color:#fff;border:0;border-radius:10px;padding:9px 16px;cursor:pointer}
+.btn:hover{background:var(--blue-d)}
+.btn-light{background:#eef3fb;color:var(--blue-d);border:1px solid #cfdcf1;border-radius:10px;padding:8px 14px;cursor:pointer}
+.btn-light:hover{border-color:var(--blue)}
+
+/* «печатает…» */
+.dots{display:inline-flex;gap:4px;padding:4px 0}
+.dots i{width:8px;height:8px;border-radius:50%;background:#9db3d9;animation:blink 1.2s infinite}
+.dots i:nth-child(2){animation-delay:.2s}.dots i:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:.3}40%{opacity:1}}
+
+/* всплывающее уведомление */
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(20px);background:#1b2433;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;pointer-events:none;transition:.25s;max-width:calc(100% - 32px);z-index:50}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* окно настроек */
+dialog{border:0;border-radius:16px;padding:0;max-width:580px;width:calc(100% - 24px);box-shadow:0 20px 60px rgba(10,30,60,.35);color:var(--text)}
+dialog::backdrop{background:rgba(10,30,60,.45)}
+.dlg{padding:18px 20px;max-height:86vh;overflow:auto}
+.dlg h2{margin:0 0 12px;color:var(--blue-d);font-size:20px}
+.dlg fieldset{border:1px solid var(--line);border-radius:12px;margin:0 0 12px;padding:8px 14px 12px}
+.dlg legend{font-weight:600;color:var(--blue-d);padding:0 6px}
+.dlg label{display:block;margin:8px 0;font-size:14px}
+.dlg input[type=text],.dlg input[type=password],.dlg select{width:100%;padding:8px 10px;border:1px solid #c9d4e6;border-radius:8px;font:inherit;margin-top:4px;background:#fff}
+.dlg input[type=range]{width:100%}
+.dlg .row{display:flex;gap:8px;align-items:center}
+.dlg .hint{font-size:12.5px;color:var(--muted);margin:4px 0}
+.dlg-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px}
+.grow{flex:1}
+
+/* --- телефон --- */
+@media (max-width:820px){
+  .layout{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  .side{flex-direction:row;overflow-x:auto;overflow-y:hidden;border-right:0;border-bottom:1px solid var(--line);padding:8px}
+  .side nav{flex-direction:row;gap:6px}
+  .side .cap,.side-foot{display:none}
+  .nav-btn{white-space:nowrap;width:auto;padding:7px 12px;background:var(--bg)}
+  .brand .sub{display:none}
+  .brand h1{font-size:17px}
+  .msg.bot .ava{display:none}
+  .msg.user .bubble{max-width:90%}
+  .chat{padding:12px 16px}
+}
+</style>
+</head>
+<body>
+
+<!-- ===================== 2. РАЗМЕТКА ===================== -->
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <div class="ava big" id="hdrAva"></div>
+      <div style="min-width:0">
+        <h1>Access-Наставник</h1>
+        <p class="sub">Курс: Индира Закировна · Жамбылский политехнический высший колледж</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button id="btnLang" class="pill" title="Язык ответов: русский / қазақша">RU</button>
+      <button id="btnVoice" class="icon-btn" title="Озвучка вкл/выкл">🔊</button>
+      <button id="btnSettings" class="icon-btn" title="Настройки">⚙️</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="side">
+      <div class="cap">Разделы</div>
+      <nav id="nav"></nav>
+      <div class="side-foot">
+        Учебная база: <b>«Колледж»</b><br>
+        Студенты · Группы · Преподаватели · Дисциплины · Оценки<br><br>
+        <button class="chip" data-ask="Структура базы «Колледж»">📘 Схема базы</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div id="chat" class="chat" aria-live="polite"></div>
+      <div id="voiceBar" class="voice-bar" hidden>
+        <span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+        <span id="vbText" class="vb-text" aria-live="polite"></span>
+        <label title="После каждого ответа микрофон включится сам"><input type="checkbox" id="vbDialog"> 🔁 Диалог</label>
+        <button type="button" class="btn-light" data-act="voice-help">Команды</button>
+        <button type="button" class="btn-light" id="vbCancel">Отмена</button>
+      </div>
+      <div id="modeBar" class="mode-bar" hidden>
+        🛠 <span>Режим практикума: следующее сообщение я проверю как ваше решение.</span>
+        <button type="button" class="btn-light" id="btnExitPractice">Выйти</button>
+      </div>
+      <div class="quick" id="quick"></div>
+      <form id="form" class="composer" autocomplete="off">
+        <button type="button" id="btnMic" class="icon-btn" title="Голосовой ввод (Ctrl+M)" aria-label="Голосовой ввод">🎤</button>
+        <textarea id="input" rows="1" placeholder="Задайте вопрос по Access… (Enter — отправить)"></textarea>
+        <button class="send" type="submit" title="Отправить">➤</button>
+      </form>
+    </main>
+  </div>
+</div>
+
+<!-- Окно настроек -->
+<dialog id="dlg">
+  <form method="dialog" class="dlg">
+    <h2>⚙️ Настройки</h2>
+
+    <fieldset>
+      <legend>🔊 Озвучка</legend>
+      <label class="row"><input type="checkbox" id="sVoiceOn"> Озвучивать ответы автоматически</label>
+      <label>Режим голоса
+        <select id="sTtsMode">
+          <option value="free">А) Бесплатный — голос браузера (Web Speech)</option>
+          <option value="cloud">Б) Реалистичный — облачный голос по API-ключу</option>
+        </select>
+      </label>
+      <label>Голос браузера
+        <select id="sVoiceName"></select>
+      </label>
+      <p class="hint">Лучшие бесплатные голоса — в Microsoft Edge: Svetlana, Dariya (рус.), Aigul (каз.).</p>
+      <label>Скорость: <b id="vRate"></b><input type="range" id="sRate" min="0.6" max="1.4" step="0.05"></label>
+      <label>Громкость: <b id="vVol"></b><input type="range" id="sVolume" min="0" max="1" step="0.05"></label>
+
+      <div id="cloudBox">
+        <label>Облачный сервис
+          <select id="sCloud">
+            <option value="azure">Microsoft Azure TTS</option>
+            <option value="yandex">Yandex SpeechKit</option>
+            <option value="eleven">ElevenLabs</option>
+          </select>
+        </label>
+        <div data-cloud="azure">
+          <label>Ключ Azure Speech <input type="password" id="sAzureKey" placeholder="ключ ресурса Speech"></label>
+          <label>Регион <input type="text" id="sAzureRegion" placeholder="westeurope"></label>
+          <label>Русский голос
+            <select id="sAzureVoice">
+              <option value="ru-RU-SvetlanaNeural">ru-RU-SvetlanaNeural (Светлана)</option>
+              <option value="ru-RU-DariyaNeural">ru-RU-DariyaNeural (Дария)</option>
+            </select>
+          </label>
+          <p class="hint">Для казахского автоматически используется kk-KZ-AigulNeural.</p>
+        </div>
+        <div data-cloud="yandex">
+          <label>API-ключ Yandex Cloud <input type="password" id="sYaKey" placeholder="AQVN..."></label>
+          <label>Голос <input type="text" id="sYaVoice" placeholder="alena"></label>
+          <label>Адрес прокси (необязательно) <input type="text" id="sYaProxy" placeholder="https://ваш-сервер/tts"></label>
+          <p class="hint">Yandex не разрешает прямые запросы из браузера (CORS). Без прокси бот сам вернётся к бесплатному голосу.</p>
+        </div>
+        <div data-cloud="eleven">
+          <label>API-ключ ElevenLabs <input type="password" id="sElKey"></label>
+          <label>ID женского голоса <input type="text" id="sElVoice" placeholder="EXAVITQu4vr4xnSDxMaL"></label>
+        </div>
+      </div>
+      <button type="button" id="btnTestVoice" class="btn-light">▶ Сохранить и проверить голос</button>
+    </fieldset>
+
+    <fieldset>
+      <legend>🤖 Ответы ИИ (необязательно)</legend>
+      <label>Провайдер
+        <select id="sAiProvider">
+          <option value="none">Нет — встроенная база знаний</option>
+          <option value="anthropic">Anthropic Claude</option>
+          <option value="openai">OpenAI-совместимый API</option>
+        </select>
+      </label>
+      <div id="aiBox">
+        <label>API-ключ <input type="password" id="sAiKey"></label>
+        <label>Модель <input type="text" id="sAiModel" placeholder=""></label>
+        <label id="aiUrlRow">Адрес API <input type="text" id="sAiUrl" placeholder="https://api.openai.com/v1/chat/completions"></label>
+        <p class="hint">Если ключ не работает, бот ответит из встроенной базы знаний.</p>
+      </div>
+    </fieldset>
+
+    <p class="hint">🔒 Ключи хранятся только в этом браузере (localStorage) и отправляются только выбранному сервису.</p>
+    <div class="dlg-actions">
+      <button type="button" id="btnClear" class="btn-light">🗑 Очистить историю чата</button>
+      <span class="grow"></span>
+      <button value="cancel" class="btn-light">Отмена</button>
+      <button value="save" class="btn">Сохранить</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast" class="toast" role="status"></div>
+
+<!--
+  ===================== 3. БАЗА ЗНАНИЙ =====================
+  Формат одной записи:
+    @@ раздел | Заголовок темы
+    keys: ключевые слова и синонимы через запятую
+    текст ответа (Markdown: ### заголовок, 1. шаги, - список, **жирный**, `код`,
+    > совет, | таблица |, блоки кода ```sql ... ``` или ```vba ... ```)
+    ??? текст мини-задания
+  Разделы: tables, queries, forms, reports, macros, vba, extra
+-->
+<script type="text/plain" id="kb">
+@@ tables | Структура базы «Колледж»
+keys: колледж, структура базы, учебная база, какие таблицы, пример базы, сквозной пример
+Все примеры строим на учебной базе **«Колледж»**. Вот её таблицы (🔑 — ключевое поле):
+| Таблица | Поля |
+|---|---|
+| Группы | 🔑КодГруппы, НазваниеГруппы, Специальность, Курс |
+| Студенты | 🔑КодСтудента, Фамилия, Имя, ДатаРождения, КодГруппы, Телефон, Стипендия |
+| Преподаватели | 🔑КодПреподавателя, ФИО, Стаж, Телефон |
+| Дисциплины | 🔑КодДисциплины, Название, Часы, КодПреподавателя |
+| Оценки | 🔑КодОценки, КодСтудента, КодДисциплины, Оценка, ДатаЭкзамена |
+### Связи
+- Группы → Студенты (1:М по КодГруппы)
+- Преподаватели → Дисциплины (1:М по КодПреподавателя)
+- Студенты ↔ Дисциплины — М:М через таблицу **Оценки**
+> Называйте поля без пробелов — так проще писать SQL и VBA.
+??? Создайте пустую базу «Колледж.accdb» и таблицу Группы с четырьмя полями из схемы.
+
+@@ tables | Типы данных полей
+keys: тип данных, типы полей, короткий текст, длинный текст, числовой, счетчик, дата и время, денежный, логический, вложение, гиперссылка, вычисляемый тип, объект ole
+Тип данных определяет, что можно хранить в поле и какие операции с ним возможны.
+| Тип | Для чего | Пример в «Колледже» |
+|---|---|---|
+| Короткий текст | до 255 символов | Фамилия, НазваниеГруппы |
+| Длинный текст | большие тексты | Примечание |
+| Числовой | числа для расчётов | Оценка, Часы, Курс |
+| Счётчик | автономер, обычно ключ | КодСтудента |
+| Дата и время | даты | ДатаРождения |
+| Денежный | суммы без ошибок округления | Стипендия |
+| Логический | Да/Нет | Староста |
+| Вложение, Гиперссылка | файлы, ссылки | Фото, Сайт |
+| Вычисляемый | формула из полей таблицы | ФИО = Фамилия & " " & Имя |
+### Как задать
+1. **Создание → Конструктор таблиц**.
+2. В столбце «Имя поля» введите название, в «Тип данных» выберите тип.
+3. Внизу на вкладке «Общие» настройте свойства: размер, формат.
+> Телефон и ИИН храните как **Короткий текст**: с ними не считают, а ведущие нули важны.
+??? Подберите типы данных для полей таблицы Преподаватели: КодПреподавателя, ФИО, Стаж, Телефон.
+
+@@ tables | Ключевое поле
+keys: ключевое поле, первичный ключ, primary key, ключ, составной ключ, уникальный идентификатор, внешний ключ
+**Первичный ключ** однозначно определяет каждую запись. Повторы и пустые значения в нём запрещены.
+### Как назначить
+1. Откройте таблицу в режиме **Конструктора**.
+2. Выделите поле, например КодСтудента (тип «Счётчик»).
+3. **Конструктор → Ключевое поле** — слева появится значок ключа.
+### Составной ключ
+Выделите несколько полей с Ctrl (например, КодСтудента и КодДисциплины) и нажмите «Ключевое поле».
+**Внешний ключ** — поле, которое ссылается на ключ другой таблицы: КодГруппы в таблице Студенты.
+> Тип внешнего ключа должен совпадать с ключом: Счётчик ↔ Числовой (Длинное целое).
+??? Какие поля в таблице Оценки являются внешними ключами и на какие таблицы они ссылаются?
+
+@@ tables | Маска ввода
+keys: маска ввода, маска, шаблон ввода, формат телефона, input mask, телефон
+Маска ввода — шаблон, который подсказывает формат и не даёт ввести лишнее.
+### Как задать
+1. Откройте таблицу Студенты в **Конструкторе**, выберите поле Телефон.
+2. Свойство **Маска ввода** → кнопка «…» (мастер) или введите вручную:
+```text
+"+7 "(000) 000-00-00;0;_
+```
+### Символы маски
+- `0` — обязательная цифра, `9` — необязательная цифра
+- `L` — обязательная буква, `?` — необязательная буква
+- `>` — дальше прописные, `<` — строчные
+- Текст в кавычках выводится как есть
+> Часть `;0` сохраняет в поле и символы оформления, `;_` задаёт знак-заполнитель.
+??? Создайте маску для поля НазваниеГруппы в формате «ИС-21»: две прописные буквы, дефис, две цифры.
+
+@@ tables | Условие на значение
+keys: условие на значение, проверка ввода, валидация, сообщение об ошибке, validation rule, ограничение, допустимые значения
+Свойство **Условие на значение** не пропустит неверные данные, а **Сообщение об ошибке** объяснит, что не так.
+### Пример: оценка только от 2 до 5
+1. Таблица Оценки → **Конструктор** → поле Оценка.
+2. Условие на значение:
+```text
+Between 2 And 5
+```
+3. Сообщение об ошибке: «Оценка должна быть от 2 до 5».
+### Другие примеры
+- ДатаРождения: `<Date()` — не позже сегодняшнего дня
+- Часы: `>0 And <=200`
+- Курс: `In (1;2;3;4)`
+> Условие для всей записи (сравнение двух полей) задаётся в окне свойств таблицы: **Конструктор → Окно свойств**.
+??? Задайте условие, чтобы стаж преподавателя был от 0 до 50 лет, и напишите своё сообщение об ошибке.
+
+@@ tables | Значение по умолчанию и обязательные поля
+keys: значение по умолчанию, по умолчанию, default, обязательное поле, пустые строки, required
+**Значение по умолчанию** подставляется в новую запись автоматически.
+1. Конструктор таблицы Оценки → поле ДатаЭкзамена.
+2. Значение по умолчанию: `=Date()` — сегодняшняя дата.
+3. Для поля Курс в таблице Группы: `1`.
+### Обязательное поле
+Свойство **Обязательное поле = Да** не даст сохранить запись без значения, например без фамилии.
+**Пустые строки = Нет** запрещает «невидимые» пустые тексты.
+??? Сделайте поле Фамилия обязательным, а для поля Стипендия задайте значение по умолчанию 0.
+
+@@ tables | Индексы
+keys: индекс, индексы, индексированное поле, ускорить поиск, совпадения не допускаются, уникальность, дубликаты
+**Индекс** ускоряет поиск и сортировку, а также может запретить повторы.
+1. Конструктор таблицы → поле Фамилия.
+2. Свойство **Индексированное поле**:
+- «Да (Допускаются совпадения)» — для частого поиска.
+- «Да (Совпадения не допускаются)» — значение уникально, например Телефон.
+### Составной индекс
+**Конструктор → Индексы**: в строке задайте имя индекса и поле КодСтудента, ниже — КодДисциплины, свойство «Уникальный индекс = Да».
+> Не индексируйте всё подряд: индексы замедляют добавление записей.
+??? Создайте уникальный индекс для поля НазваниеГруппы в таблице Группы.
+
+@@ tables | Мастер подстановок
+keys: мастер подстановок, подстановка, выпадающий список в таблице, lookup, список значений, поле подстановки
+Мастер подстановок превращает поле в **выпадающий список** — из другой таблицы или из фиксированных значений.
+### Пример: выбор группы у студента
+1. Таблица Студенты → **Конструктор** → поле КодГруппы.
+2. Тип данных → **Мастер подстановок…**
+3. «Объект будет использовать значения из таблицы» → таблица **Группы**.
+4. Поля: КодГруппы, НазваниеГруппы → сортировка по названию.
+5. Оставьте флажок «Скрыть ключевой столбец» → Готово.
+Теперь выбираем название группы, а в таблице хранится её код. Access сам создаст связь в схеме данных.
+> Для фиксированного списка выберите «Будет введён фиксированный набор значений»: например, очная, заочная.
+??? Сделайте подстановку для поля КодПреподавателя в таблице Дисциплины, чтобы показывалось ФИО.
+
+@@ tables | Нормализация (1НФ–3НФ)
+keys: нормализация, нормальная форма, 1нф, 2нф, 3нф, избыточность, дублирование данных, аномалии
+**Нормализация** — разбиение данных на таблицы так, чтобы не было повторов и противоречий.
+Плохой пример — одна таблица «Ведомость»: ФИО студента, Группа, Куратор группы, Дисциплина, Преподаватель, Оценка. Куратор и преподаватель повторяются в сотнях строк.
+### 1НФ
+Каждое поле атомарно (одно значение), нет повторяющихся групп. Нельзя писать «Математика, Физика» в одной ячейке.
+### 2НФ
+1НФ, и каждое неключевое поле зависит от **всего** составного ключа. Название дисциплины зависит только от КодДисциплины — выносим в таблицу Дисциплины.
+### 3НФ
+2НФ, и нет **транзитивных** зависимостей: неключевое поле не зависит от другого неключевого. Куратор зависит от группы, а не от студента — переносим в таблицу Группы.
+Итог — пять таблиц базы «Колледж».
+> Помощник Access: **Работа с базами данных → Анализ таблиц**.
+??? Таблица: КодСтудента, ФИО, Группа, Специальность группы. Какая нормальная форма нарушена и как это исправить?
+
+@@ tables | Схема данных и связь 1:М
+keys: схема данных, связь, связи, создать связь, связать таблицы, один ко многим, relationships
+**Связь «один-ко-многим»** самая частая: одна группа — много студентов.
+### Как создать
+1. Закройте все таблицы.
+2. **Работа с базами данных → Схема данных**.
+3. **Добавить таблицы**: Группы и Студенты.
+4. Перетащите поле **КодГруппы** из Группы на КодГруппы в Студенты.
+5. В окне «Изменение связей» отметьте **Обеспечение целостности данных** → Создать.
+На линии связи появятся «1» и «∞».
+> Поля связи должны иметь одинаковый тип: Счётчик ↔ Числовой (Длинное целое).
+??? Создайте связь 1:М между таблицами Преподаватели и Дисциплины.
+
+@@ tables | Связь 1:1
+keys: один к одному, паспортные данные, разделение таблицы
+**Один-к-одному**: каждой записи одной таблицы соответствует не больше одной записи другой. Так выносят редкие или конфиденциальные данные.
+### Пример
+Таблица **ПаспортныеДанные**: КодСтудента (ключ, Числовой), Серия, Номер, КемВыдан.
+1. **Схема данных** → добавьте Студенты и ПаспортныеДанные.
+2. Перетащите КодСтудента на КодСтудента.
+3. Отметьте «Обеспечение целостности» — Access покажет тип «один-к-одному».
+> Связь 1:1 получается, когда оба поля связи — ключевые или уникальные.
+??? Придумайте для базы «Колледж» ещё один пример связи 1:1.
+
+@@ tables | Связь М:М (многие-ко-многим)
+keys: многие ко многим, промежуточная таблица, связующая таблица, таблица связей, junction, связать студентов и дисциплины
+Access не умеет связывать «многие-ко-многим» напрямую. Такую связь делают через **промежуточную таблицу** и две связи 1:М.
+Студент изучает много дисциплин, у дисциплины много студентов — промежуточная таблица **Оценки**.
+### Шаги
+1. Создайте таблицу Оценки: КодОценки (Счётчик, ключ), КодСтудента (Числовой), КодДисциплины (Числовой), Оценка, ДатаЭкзамена.
+2. **Работа с базами данных → Схема данных** → добавьте Студенты, Оценки, Дисциплины.
+3. Перетащите КодСтудента из Студенты в Оценки → «Обеспечение целостности» → Создать.
+4. Перетащите КодДисциплины из Дисциплины в Оценки → так же.
+Готово: Студенты 1 → ∞ Оценки ∞ ← 1 Дисциплины.
+```sql
+SELECT Студенты.Фамилия, Дисциплины.Название, Оценки.Оценка
+FROM Дисциплины INNER JOIN (Студенты INNER JOIN Оценки
+  ON Студенты.КодСтудента = Оценки.КодСтудента)
+  ON Дисциплины.КодДисциплины = Оценки.КодДисциплины;
+```
+??? Свяжите отношением М:М таблицы Преподаватели и Группы (кто в какой группе ведёт занятия). Какую промежуточную таблицу создадите?
+
+@@ tables | Целостность данных и каскадные операции
+keys: целостность, обеспечение целостности, ссылочная целостность, каскадное обновление, каскадное удаление, каскад, связанные записи
+**Обеспечение целостности данных** не даёт появиться «сиротам» — например, оценке несуществующего студента.
+С целостностью Access запретит:
+- ввести КодСтудента, которого нет в таблице Студенты;
+- удалить студента, у которого есть оценки.
+### Каскадные параметры
+- **Каскадное обновление связанных полей** — изменили код группы, он изменится у всех её студентов.
+- **Каскадное удаление связанных записей** — удалили группу, удалятся все её студенты.
+Как включить: **Схема данных** → двойной щелчок по линии связи → отметить флажки → ОК.
+> Каскадное удаление опасно: включайте осознанно и делайте резервную копию.
+??? Что произойдёт при удалении дисциплины, если каскадное удаление включено, и что — если выключено?
+
+@@ queries | Запрос на выборку
+keys: запрос на выборку, выборка, простой запрос, конструктор запросов, select, отбор записей, мастер запросов
+Запрос на выборку показывает нужные поля и записи из одной или нескольких таблиц.
+### В конструкторе
+1. **Создание → Конструктор запросов**.
+2. Добавьте таблицы Студенты и Группы — связь появится сама.
+3. Дважды щёлкните поля: Фамилия, Имя, НазваниеГруппы.
+4. В строке **Сортировка** для Фамилии выберите «по возрастанию».
+5. **Конструктор → Выполнить** (!) и сохраните запрос как «СписокСтудентов».
+```sql
+SELECT Студенты.Фамилия, Студенты.Имя, Группы.НазваниеГруппы
+FROM Группы INNER JOIN Студенты ON Группы.КодГруппы = Студенты.КодГруппы
+ORDER BY Студенты.Фамилия;
+```
+> SQL-код любого запроса: **Главная → Режим → Режим SQL**.
+??? Сделайте запрос: ФИО и стаж преподавателей со стажем больше 10 лет, по убыванию стажа.
+
+@@ queries | Условия отбора: Like, Between, And, Or
+keys: условие отбора, условия, like, between, звездочка, шаблон, или, and, or, фильтр в запросе, is null, пустые
+Условия пишутся в строке **Условие отбора** конструктора запроса.
+| Условие | Что отберёт |
+|---|---|
+| `"ИС-21"` | точно эту группу |
+| `Like "Ив*"` | фамилии на «Ив» |
+| `Between 4 And 5` | оценки 4 и 5 |
+| `>=#01.09.2024#` | даты с 1 сентября 2024 |
+| `Is Null` | пустое поле |
+| `Not "ИС-21"` | все, кроме группы |
+### И / ИЛИ
+- Условия в **одной строке** работают как «И» — все сразу.
+- Условия в строке **«или»** работают как «ИЛИ» — любое.
+```sql
+SELECT Фамилия, Имя FROM Студенты
+WHERE Фамилия Like "Ив*" AND Стипендия > 0;
+```
+> В Access звёздочка `*` — любое число символов, знак `?` — один символ.
+??? Отберите студентов, родившихся в 2006 году, двумя способами: через Between и через Year().
+
+@@ queries | Запрос с параметром
+keys: параметр, параметром, параметрический запрос, ввод значения, введите, квадратные скобки, спрашивает значение
+**Запрос с параметром** спрашивает значение при каждом запуске — один запрос подходит для любой группы.
+### Шаги
+1. **Создание → Конструктор запросов** → таблицы Студенты и Группы.
+2. Поля: Фамилия, Имя, НазваниеГруппы.
+3. В **Условие отбора** для НазваниеГруппы напишите: `[Введите группу:]`
+4. **Выполнить** → появится окно ввода → введите «ИС-21».
+```sql
+PARAMETERS [Введите группу:] Text(255);
+SELECT Студенты.Фамилия, Студенты.Имя, Группы.НазваниеГруппы
+FROM Группы INNER JOIN Студенты ON Группы.КодГруппы = Студенты.КодГруппы
+WHERE Группы.НазваниеГруппы = [Введите группу:];
+```
+### Варианты
+- Часть фамилии: `Like "*" & [Часть фамилии:] & "*"`
+- Период: `Between [С даты:] And [По дату:]`
+> Тип параметра задают в **Конструктор → Параметры** — это важно для дат и чисел.
+??? Создайте запрос с параметром, который выводит оценки по введённому названию дисциплины.
+
+@@ queries | Вычисляемые поля в запросе
+keys: вычисляемое поле, вычисление, формула в запросе, выражение, вычисляемые поля, возраст, конкатенация, амперсанд
+Вычисляемое поле создают в пустой ячейке строки **Поле** в виде `Имя: выражение`.
+### Примеры для «Колледжа»
+- ФИО: `ФИО: [Фамилия] & " " & [Имя]`
+- Возраст: `Возраст: DateDiff("yyyy";[ДатаРождения];Date())`
+- Стипендия с надбавкой: `Новая: [Стипендия]*1,1`
+```sql
+SELECT Фамилия & " " & Имя AS ФИО,
+       DateDiff("yyyy", ДатаРождения, Date()) AS Возраст
+FROM Студенты;
+```
+> В конструкторе русской версии аргументы функций разделяются точкой с запятой, а в режиме SQL — запятой.
+??? Добавьте в запрос по таблице Дисциплины поле «ЧасовВНеделю» = Часы / 18.
+
+@@ queries | Итоговый запрос (группировка)
+keys: итоговый запрос, итоги, группировка, групповые операции, среднее, avg, count, sum, сумма, количество, средний балл, min, max
+Итоговый запрос считает сумму, среднее и количество по группам записей.
+### Средний балл по каждой дисциплине
+1. **Конструктор запросов** → таблицы Дисциплины и Оценки.
+2. Поля: Название, Оценка.
+3. **Конструктор → Итоги (Σ)** — появится строка «Групповая операция».
+4. Для Название — «Группировка», для Оценка — «Avg».
+5. Подпись столбца: в ячейке поля напишите `СреднийБалл: Оценка`.
+```sql
+SELECT Дисциплины.Название, Avg(Оценки.Оценка) AS СреднийБалл,
+       Count(Оценки.КодОценки) AS КолОценок
+FROM Дисциплины INNER JOIN Оценки ON Дисциплины.КодДисциплины = Оценки.КодДисциплины
+GROUP BY Дисциплины.Название;
+```
+Функции: Sum, Avg, Count, Min, Max, First, Last.
+> Округлить среднее: `Round(Avg(Оценка), 2)`.
+??? Посчитайте количество студентов в каждой группе.
+
+@@ queries | Перекрёстный запрос
+keys: перекрестный, перекрестный запрос, crosstab, transform, pivot, сводная таблица, таблица оценок
+Перекрёстный запрос — это сводная таблица: строки × столбцы × значение.
+Сделаем ведомость: студенты по строкам, дисциплины по столбцам, в ячейках — оценка.
+1. **Конструктор запросов** → Студенты, Оценки, Дисциплины.
+2. Тип запроса → **Перекрёстный**.
+3. Фамилия — «Заголовки строк», Название — «Заголовки столбцов», Оценка — «Значение» с операцией Avg.
+```sql
+TRANSFORM Avg(Оценки.Оценка) AS Балл
+SELECT Студенты.Фамилия
+FROM Дисциплины INNER JOIN (Студенты INNER JOIN Оценки
+  ON Студенты.КодСтудента = Оценки.КодСтудента)
+  ON Дисциплины.КодДисциплины = Оценки.КодДисциплины
+GROUP BY Студенты.Фамилия
+PIVOT Дисциплины.Название;
+```
+> Есть и мастер: **Создание → Мастер запросов → Перекрёстный запрос**, но он берёт данные только из одной таблицы или запроса.
+??? Постройте перекрёстный запрос: группы по строкам, дисциплины по столбцам, средний балл в ячейках.
+
+@@ queries | Запрос на создание таблицы
+keys: создание таблицы запросом, select into, новая таблица из запроса, отличники
+Создаёт **новую таблицу** из результата выборки. Пример — таблица «Отличники».
+1. Сделайте запрос на выборку: студенты, у которых минимальная оценка равна 5.
+2. **Конструктор → Создание таблицы** → имя «Отличники» → ОК.
+3. **Выполнить** → подтвердите вставку строк.
+```sql
+SELECT Студенты.КодСтудента, Студенты.Фамилия, Студенты.Имя
+INTO Отличники
+FROM Студенты INNER JOIN Оценки ON Студенты.КодСтудента = Оценки.КодСтудента
+GROUP BY Студенты.КодСтудента, Студенты.Фамилия, Студенты.Имя
+HAVING Min(Оценки.Оценка) = 5;
+```
+> Если таблица уже есть, Access удалит её и создаст заново.
+??? Создайте запросом таблицу «Должники» — студенты, у которых есть оценка 2.
+
+@@ queries | Запрос на добавление
+keys: insert into, добавить записи запросом, архив, перенести записи
+Добавляет записи из запроса в **существующую** таблицу.
+Пример: перенести старые оценки в таблицу ОценкиАрхив с такой же структурой.
+1. Запрос на выборку из Оценки с условием `<#01.09.2024#` для поля ДатаЭкзамена.
+2. **Конструктор → Добавление** → таблица ОценкиАрхив.
+3. Проверьте строку «Добавление» (соответствие полей) → **Выполнить**.
+```sql
+INSERT INTO ОценкиАрхив (КодСтудента, КодДисциплины, Оценка, ДатаЭкзамена)
+SELECT КодСтудента, КодДисциплины, Оценка, ДатаЭкзамена
+FROM Оценки
+WHERE ДатаЭкзамена < #09/01/2024#;
+```
+> В SQL даты пишутся как #мм/дд/гггг#, а в конструкторе — как в Windows: #01.09.2024#.
+??? Добавьте запросом нового преподавателя в таблицу Преподаватели (подсказка: INSERT INTO … VALUES).
+
+@@ queries | Запрос на обновление
+keys: update, обновить, изменить значения, повысить стипендию, массовое изменение, set
+Меняет значения сразу во многих записях.
+Пример: повысить стипендию на 10% студентам группы ИС-21.
+1. Конструктор запросов → Студенты и Группы.
+2. **Конструктор → Обновление**.
+3. Поле Стипендия, строка **Обновление**: `[Стипендия]*1,1`.
+4. Поле НазваниеГруппы, **Условие отбора**: `"ИС-21"`.
+5. Нажмите **Режим**, чтобы проверить строки, затем **Выполнить**.
+```sql
+UPDATE Группы INNER JOIN Студенты ON Группы.КодГруппы = Студенты.КодГруппы
+SET Студенты.Стипендия = Студенты.Стипендия * 1.1
+WHERE Группы.НазваниеГруппы = "ИС-21";
+```
+> Перед запросами на изменение сделайте копию базы: отменить их нельзя.
+??? Обновите запросом курс всех групп на 1 больше — перевод на следующий курс.
+
+@@ queries | Запрос на удаление
+keys: delete, удалить записи, удаление записей запросом, очистить таблицу
+Удаляет записи, подходящие под условие.
+1. Конструктор запросов → таблица Оценки.
+2. **Конструктор → Удаление**.
+3. Поле ДатаЭкзамена, Условие отбора: `<#01.09.2020#`.
+4. **Режим** — проверить, **Выполнить** — удалить.
+```sql
+DELETE FROM Оценки
+WHERE ДатаЭкзамена < #09/01/2020#;
+```
+> Если включена целостность без каскада, Access не удалит записи, на которые ссылаются другие таблицы.
+??? Напишите запрос, удаляющий студентов без группы (КодГруппы Is Null).
+
+@@ queries | Построитель выражений
+keys: построитель выражений, построитель, expression builder, мастер выражений, ctrl f2
+**Построитель выражений** помогает собрать формулу без ошибок в именах полей.
+Где открыть:
+- в запросе: щёлкните в ячейке → **Конструктор → Построитель** (или Ctrl+F2);
+- в свойствах поля или элемента: кнопка «…» рядом со свойством.
+### Как пользоваться
+1. Слева — элементы: таблицы, запросы, функции, константы, операторы.
+2. В середине — категории, справа — значения. Двойной щелчок вставляет элемент.
+3. Соберите, например, `IIf([Оценка]>=3;"Сдал";"Не сдал")` → ОК.
+> Нажмите «Больше >>», чтобы видеть полный список функций.
+??? Через построитель создайте выражение: ФИО преподавателя прописными буквами — UCase([ФИО]).
+
+@@ queries | Функции IIf и Nz
+keys: iif, nz, условие в выражении, если то иначе, null, пустое значение, заменить пусто
+### IIf — «если … то … иначе»
+Синтаксис: `IIf(условие; если_да; если_нет)`
+```sql
+SELECT Фамилия, Оценка,
+       IIf(Оценка >= 3, "Сдал", "Не сдал") AS Результат
+FROM Студенты INNER JOIN Оценки ON Студенты.КодСтудента = Оценки.КодСтудента;
+```
+Вложенный IIf: `IIf([Оценка]=5;"Отлично";IIf([Оценка]=4;"Хорошо";"Удовл."))`
+### Nz — замена пустого значения
+`Nz([Стипендия];0)` вернёт 0, если стипендия не указана. Без Nz выражение с пустым полем даёт пустой результат (Null).
+> В VBA Nz тоже работает: `Nz(Me.Стипендия, 0)`.
+??? Создайте поле «ВидСтипендии»: если средний балл не ниже 4,5 — «Повышенная», не ниже 4 — «Обычная», иначе «Нет».
+
+@@ queries | Функции дат: DateDiff, DateAdd, Format
+keys: datediff, dateadd, format, функции дат, дата, возраст, разница дат, формат даты, year, month, now
+| Функция | Что делает | Результат |
+|---|---|---|
+| `Date()` | текущая дата | 03.11.2026 |
+| `Year([ДатаРождения])` | год | 2006 |
+| `DateDiff("yyyy";[ДатаРождения];Date())` | разница в годах | 20 |
+| `DateDiff("d";[ДатаЭкзамена];Date())` | прошло дней | 15 |
+| `DateAdd("m";6;Date())` | плюс 6 месяцев | 03.05.2027 |
+| `Format([ДатаЭкзамена];"dd.mm.yyyy")` | формат даты | 15.01.2026 |
+| `Format(Date();"mmmm")` | месяц словом | ноябрь |
+Интервалы: "yyyy" — годы, "m" — месяцы, "d" — дни, "ww" — недели.
+> DateDiff("yyyy") считает смену года, а не полные годы. Точный возраст: `DateDiff("yyyy";[ДатаРождения];Date())+(Format(Date();"mmdd")<Format([ДатаРождения];"mmdd"))`.
+??? Выведите студентов, у которых день рождения в текущем месяце.
+
+@@ queries | Функции DLookup, DSum, DCount
+keys: dlookup, dsum, dcount, davg, доменные функции, функции по подмножеству, domain, найти значение в другой таблице
+Доменные функции берут значение из таблицы или запроса прямо в выражении.
+Синтаксис: `DФункция("поле";"таблица";"условие")`
+- `DLookup("ФИО";"Преподаватели";"КодПреподавателя=3")` — ФИО преподавателя с кодом 3.
+- `DSum("Часы";"Дисциплины";"КодПреподавателя=3")` — его нагрузка в часах.
+- `DCount("*";"Оценки";"Оценка=2")` — сколько всего двоек.
+- `DAvg("Оценка";"Оценки";"КодСтудента=" & [КодСтудента])` — средний балл текущего студента.
+```vba
+' Показать ФИО преподавателя на форме Дисциплины
+Me.txtПреподаватель = DLookup("ФИО", "Преподаватели", _
+    "КодПреподавателя=" & Me.КодПреподавателя)
+```
+> Текст в условии берётся в одинарные кавычки: `"НазваниеГруппы='ИС-21'"`.
+??? С помощью DCount выведите на форме Группы количество студентов текущей группы.
+
+@@ queries | SQL: SELECT, WHERE, ORDER BY
+keys: sql, select, where, order by, язык sql, режим sql, distinct, top, синтаксис sql
+SQL — язык запросов. Любой запрос Access можно открыть через **Режим → Режим SQL**.
+```sql
+SELECT [DISTINCT] [TOP n] поля
+FROM таблица
+WHERE условие
+ORDER BY поле [ASC | DESC];
+```
+Пример: пять лучших оценок по дисциплине с кодом 1.
+```sql
+SELECT TOP 5 Студенты.Фамилия, Оценки.Оценка
+FROM Студенты INNER JOIN Оценки ON Студенты.КодСтудента = Оценки.КодСтудента
+WHERE Оценки.КодДисциплины = 1
+ORDER BY Оценки.Оценка DESC;
+```
+- `DISTINCT` убирает повторы.
+- Строки — в кавычках, даты — в `#мм/дд/гггг#`, имена с пробелами — в `[ ]`.
+??? Напишите SQL: список уникальных специальностей из таблицы Группы по алфавиту.
+
+@@ queries | SQL: соединения JOIN
+keys: join, inner join, left join, right join, соединение таблиц, объединение таблиц, внешнее соединение, параметры объединения
+**INNER JOIN** возвращает только совпадающие записи. **LEFT JOIN** — все записи левой таблицы, даже без пары.
+Все студенты и их оценки, включая тех, у кого оценок нет:
+```sql
+SELECT Студенты.Фамилия, Оценки.Оценка
+FROM Студенты LEFT JOIN Оценки ON Студенты.КодСтудента = Оценки.КодСтудента;
+```
+Студенты без единой оценки:
+```sql
+SELECT Студенты.Фамилия
+FROM Студенты LEFT JOIN Оценки ON Студенты.КодСтудента = Оценки.КодСтудента
+WHERE Оценки.КодОценки Is Null;
+```
+В конструкторе: двойной щелчок по линии связи → **Параметры объединения** → вариант 2 или 3.
+> При трёх и более таблицах Access требует скобки: `FROM A INNER JOIN (B INNER JOIN C ON …) ON …`.
+??? Найдите дисциплины, по которым ещё нет ни одной оценки.
+
+@@ queries | SQL: GROUP BY и HAVING
+keys: group by, having, группировка sql, разница where и having, отбор групп
+**GROUP BY** собирает строки в группы, **HAVING** фильтрует уже сгруппированные результаты.
+- `WHERE` — условие **до** группировки, на отдельные строки.
+- `HAVING` — условие **после** группировки, на итоги.
+Группы со средним баллом выше 4:
+```sql
+SELECT Группы.НазваниеГруппы, Round(Avg(Оценки.Оценка), 2) AS СреднийБалл
+FROM Группы INNER JOIN (Студенты INNER JOIN Оценки
+  ON Студенты.КодСтудента = Оценки.КодСтудента)
+  ON Группы.КодГруппы = Студенты.КодГруппы
+WHERE Оценки.ДатаЭкзамена >= #09/01/2025#
+GROUP BY Группы.НазваниеГруппы
+HAVING Avg(Оценки.Оценка) > 4;
+```
+??? Выведите студентов, у которых больше двух двоек.
+
+@@ queries | SQL: подзапросы
+keys: подзапрос, подзапросы, вложенный запрос, subquery, exists, выше среднего
+**Подзапрос** — это SELECT внутри другого запроса.
+Студенты со стипендией выше средней:
+```sql
+SELECT Фамилия, Имя, Стипендия
+FROM Студенты
+WHERE Стипендия > (SELECT Avg(Стипендия) FROM Студенты);
+```
+Преподаватели, у которых есть дисциплины больше 100 часов:
+```sql
+SELECT ФИО FROM Преподаватели
+WHERE КодПреподавателя IN
+  (SELECT КодПреподавателя FROM Дисциплины WHERE Часы > 100);
+```
+Студенты без двоек:
+```sql
+SELECT Фамилия FROM Студенты AS С
+WHERE NOT EXISTS
+  (SELECT * FROM Оценки AS О WHERE О.КодСтудента = С.КодСтудента AND О.Оценка = 2);
+```
+> В конструкторе подзапрос пишут прямо в строке «Условие отбора» в скобках.
+??? Найдите дисциплину с максимальным количеством часов с помощью подзапроса.
+
+@@ forms | Создание формы: мастер и конструктор
+keys: создать форму, форма, формы, мастер форм, конструктор форм, режим макета, автоформа
+Форма — удобное окно для ввода и просмотра данных.
+### Быстро
+Выделите таблицу Студенты → **Создание → Форма**.
+### Мастером
+1. **Создание → Мастер форм**.
+2. Таблица Студенты → поля Фамилия, Имя, ДатаРождения, КодГруппы.
+3. Вид: «В один столбец» → имя «Студенты» → Готово.
+### Конструктором
+1. **Создание → Конструктор форм**.
+2. Окно свойств (F4) → **Данные → Источник записей**: Студенты.
+3. **Конструктор → Добавить поля** → перетащите поля на форму.
+Режимы: **Форма** — работа, **Макет** — быстро двигать элементы, **Конструктор** — полная настройка.
+??? Создайте мастером форму для таблицы Дисциплины и измените её заголовок.
+
+@@ forms | Ленточные и разделённые формы
+keys: ленточная форма, несколько элементов, разделенная форма, табличная форма, режим по умолчанию, continuous
+- **В один столбец** — одна запись на экране.
+- **Ленточная** (несколько элементов) — много записей строками, как список.
+- **Разделённая** — сверху форма, снизу таблица; выбор строки синхронизирован.
+### Как создать
+- Ленточная: выделите таблицу → **Создание → Другие формы → Несколько элементов**.
+- Разделённая: **Создание → Другие формы → Разделённая форма**.
+- Или в свойствах формы: **Макет → Режим по умолчанию** = «Ленточная форма».
+> Ленточная форма отлично подходит для списка оценок или справочника групп.
+??? Сделайте разделённую форму для таблицы Студенты и проверьте синхронизацию.
+
+@@ forms | Подчинённая форма
+keys: подчиненная форма, subform, главная и подчиненная, форма в форме, основные поля, подчиненные поля, связь форм
+**Подчинённая форма** показывает связанные записи: сверху группа, снизу её студенты.
+### Мастером
+1. **Создание → Мастер форм**.
+2. Добавьте поля из таблицы **Группы** и из таблицы **Студенты**.
+3. Вид данных: «по Группы» → **Подчинённые формы** → Далее → Готово.
+### Вручную
+1. Откройте форму Группы в Конструкторе.
+2. Перетащите ленточную форму студентов из области навигации на форму.
+3. Проверьте свойства подчинённой формы: **Основные поля** = КодГруппы, **Подчинённые поля** = КодГруппы.
+> Обратиться к полю подчинённой формы из главной: `Me.СтудентыПодч.Form!Фамилия`.
+??? Создайте форму Студенты с подчинённой формой Оценки.
+
+@@ forms | Поле со списком
+keys: поле со списком, combobox, combo, выпадающий список, список на форме, источник строк, присоединенный столбец, поиск записи
+**Поле со списком** даёт выбрать значение из списка вместо ввода вручную.
+### Шаги
+1. Форма Студенты → **Конструктор** → элемент **Поле со списком**.
+2. Мастер: «Получить значения из таблицы» → Группы → поля КодГруппы, НазваниеГруппы.
+3. Скройте ключевой столбец → «Сохранить в поле» КодГруппы → Готово.
+Свойства, которые получились:
+- **Источник строк**: `SELECT КодГруппы, НазваниеГруппы FROM Группы ORDER BY НазваниеГруппы;`
+- **Присоединённый столбец**: 1, **Число столбцов**: 2, **Ширина столбцов**: 0см;3см
+### Поиск записи
+Третий вариант мастера — «Поиск записи в форме» — создаёт список для быстрого перехода к студенту.
+??? Добавьте на форму Дисциплины поле со списком для выбора преподавателя по ФИО.
+
+@@ forms | Вкладки и кнопки
+keys: вкладка, вкладки, набор вкладок, tab control, кнопка, кнопки, мастер кнопок, кнопка открыть форму, command button
+### Вкладки
+1. Конструктор формы → элемент **Вкладка**.
+2. Переименуйте страницы через свойство «Подпись»: «Личные данные», «Оценки».
+3. Перетащите поля на нужную страницу.
+### Кнопки
+1. Элемент **Кнопка** → откроется мастер кнопок.
+2. Категория «Работа с формой» → «Открыть форму» → Оценки.
+3. Текст: «Оценки студента» → Готово.
+Или своя реакция на VBA:
+```vba
+Private Sub btnClose_Click()
+    DoCmd.Close acForm, Me.Name
+End Sub
+```
+> Включите **Конструктор → Использовать мастера**, иначе мастер кнопок не откроется.
+??? Сделайте на форме Студенты две вкладки и кнопку «Закрыть».
+
+@@ forms | Вычисляемые поля в форме
+keys: вычисляемое поле в форме, данные поля, поле с формулой, итог в форме, примечание формы, sum в форме, свободное поле
+Вычисляемое поле — это **Поле** (TextBox), у которого свойство **Данные** начинается со знака `=`.
+- ФИО: `=[Фамилия] & " " & [Имя]`
+- Возраст: `=DateDiff("yyyy";[ДатаРождения];Date())`
+- Количество оценок студента: `=DCount("*";"Оценки";"КодСтудента=" & [КодСтудента])`
+### Итог по ленточной форме
+Поле в **примечании формы**: `=Avg([Оценка])` или `=Count(*)`.
+> Значение вычисляемого поля нельзя редактировать вручную, оно пересчитывается само.
+??? На ленточной форме Оценки выведите в примечании средний балл всех записей.
+
+@@ forms | Условное форматирование
+keys: условное форматирование, цвет, подсветка, выделить цветом, красный, двойки, conditional formatting
+Подсветим двойки красным, а пятёрки — зелёным.
+1. Форма Оценки → режим **Макета** или **Конструктора** → выделите поле Оценка.
+2. **Формат → Условное форматирование → Создать правило**.
+3. «Значение поля» → «равно» → `2` → красный полужирный текст.
+4. Ещё одно правило: равно `5` → зелёная заливка → ОК.
+Правило по выражению: «Выражение» → `[Стипендия]=0` — так можно подсветить всю строку, если применить правило к каждому полю.
+> Отчёты поддерживают условное форматирование точно так же.
+??? Выделите жёлтым студентов, у которых стипендия больше 30 000.
+
+@@ forms | Навигационная и кнопочная форма
+keys: навигационная форма, кнопочная форма, главное меню, меню базы, switchboard, форма запуска, стартовая форма, форма просмотра
+**Навигационная форма** — главное меню базы с вкладками.
+1. **Создание → Навигация → Горизонтальные вкладки**.
+2. Перетащите формы и отчёты из области навигации на «[Добавить]».
+3. Сохраните как «ГлавноеМеню».
+### Открывать при запуске
+**Файл → Параметры → Текущая база данных → Форма просмотра** = ГлавноеМеню.
+### Кнопочная форма
+Классическую кнопочную форму делает **Диспетчер кнопочных форм**. В новых версиях его нужно добавить на ленту: **Параметры → Настроить ленту**. Проще сделать обычную форму с кнопками.
+??? Создайте навигационную форму с вкладками: Студенты, Группы, Оценки, Ведомость.
+
+@@ forms | Свойства формы и элементов
+keys: свойства формы, окно свойств, f4, источник записей, разрешить изменение, разрешить добавление, свойства элементов, только чтение
+Окно свойств — **F4** или **Конструктор → Окно свойств**. Вкладки: Макет, Данные, События, Другие, Все.
+Полезные свойства формы:
+- **Источник записей** — таблица, запрос или SQL.
+- **Разрешить изменение / добавление / удаление** — «Нет» означает только просмотр.
+- **Ввод данных** = Да — форма открывается сразу на новой записи.
+- **Кнопки навигации**, **Область выделения** — служебные элементы.
+Свойства элемента: **Данные**, **Формат поля**, **Доступ**, **Блокировка**, **Значение по умолчанию**, **Условие на значение**.
+> Свойства можно менять и кодом: `Me.Стипендия.Locked = True`.
+??? Сделайте форму Преподаватели только для просмотра.
+
+@@ reports | Создание отчёта, группировка и сортировка
+keys: отчет, отчеты, создать отчет, мастер отчетов, группировка в отчете, сортировка в отчете, уровни группировки, ведомость
+Отчёт — документ для печати. Сделаем список студентов по группам.
+### Мастером
+1. **Создание → Мастер отчётов** → поля: НазваниеГруппы из Группы, Фамилия и Имя из Студенты.
+2. Уровень группировки — НазваниеГруппы.
+3. Сортировка — Фамилия по возрастанию → макет «ступенчатый» → Готово.
+### В конструкторе
+**Конструктор → Группировка и сортировка** → «Добавить группировку» → НазваниеГруппы → «с разделом заголовка» и «с разделом примечания».
+Разделы отчёта: заголовок отчёта, верхний колонтитул, заголовок группы, область данных, примечание группы, нижний колонтитул, примечание отчёта.
+??? Создайте отчёт «Дисциплины по преподавателям» с группировкой по ФИО преподавателя.
+
+@@ reports | Итоги, вычисляемые поля и колонтитулы
+keys: итоги в отчете, вычисляемое поле в отчете, колонтитулы, номер страницы, нумерация строк, сумма с накоплением, примечание группы, page, pages
+### Итоги по группе
+В **примечании группы** поле: `=Avg([Оценка])` — средний балл группы, `=Count(*)` — число записей.
+В **примечании отчёта** те же формулы дают общий итог.
+### Нумерация строк
+Поле в области данных: Данные `=1`, свойство **Сумма с накоплением** = «Для группы».
+### Колонтитулы
+- Номер страницы: `="Страница " & [Page] & " из " & [Pages]`
+- Дата печати: `=Format(Date();"dd.mm.yyyy")`
+> В режиме макета **Итоги** добавляют сумму или среднее одним щелчком.
+??? Добавьте в отчёт по оценкам средний балл по каждой группе и общий средний балл.
+
+@@ reports | Подчинённый отчёт
+keys: подчиненный отчет, subreport, отчет в отчете, вложенный отчет
+**Подчинённый отчёт** — отчёт внутри отчёта: карточка студента и его оценки.
+1. Создайте отчёт «ОценкиСтудента» с полями Название дисциплины и Оценка.
+2. Откройте основной отчёт «Студенты» в **Конструкторе**.
+3. Перетащите «ОценкиСтудента» в область данных.
+4. Проверьте свойства: **Основные поля** = КодСтудента, **Подчинённые поля** = КодСтудента.
+> Свойство «Расширение» = Да позволяет подчинённому отчёту растягиваться по числу строк.
+??? Создайте отчёт Группы с подчинённым отчётом — списком студентов.
+
+@@ reports | Отчёт с параметрами
+keys: отчет с параметром, параметры отчета, отчет по группе, фильтр отчета, условие отбора отчета, openreport
+Способ 1 — **отчёт на запросе с параметром**: источником записей ставим запрос с условием `[Введите группу:]`, и при открытии отчёт спросит группу.
+Способ 2, удобнее — выбор на форме и VBA:
+1. На форме сделайте поле со списком **cboГруппа** (КодГруппы, НазваниеГруппы).
+2. Добавьте кнопку «Ведомость» с кодом:
+```vba
+Private Sub btnReport_Click()
+    If IsNull(Me.cboГруппа) Then
+        MsgBox "Выберите группу", vbExclamation
+        Exit Sub
+    End If
+    DoCmd.OpenReport "Ведомость", acViewPreview, , _
+        "КодГруппы=" & Me.cboГруппа
+End Sub
+```
+> Параметр можно вывести в заголовке отчёта: `="Группа: " & [Введите группу:]`.
+??? Сделайте отчёт об оценках за период: даты «с» и «по» вводятся на форме.
+
+@@ reports | Печать и экспорт отчёта в PDF
+keys: печать, pdf, экспорт в pdf, сохранить pdf, предварительный просмотр, outputto, параметры страницы
+### Вручную
+1. Откройте отчёт → **Предварительный просмотр**.
+2. **PDF или XPS** → выберите папку → Опубликовать.
+3. Печать — **Ctrl+P**, поля и ориентация — в «Параметрах страницы».
+### Кодом VBA
+```vba
+DoCmd.OutputTo acOutputReport, "Ведомость", acFormatPDF, _
+    CurrentProject.Path & "\Ведомость.pdf", True
+```
+Последний аргумент `True` сразу открывает готовый PDF.
+> Если отчёт шире листа, появятся пустые страницы — уменьшите ширину отчёта.
+??? Сделайте кнопку, которая сохраняет отчёт «Ведомость» в PDF рядом с базой.
+
+@@ macros | Макросы и макрокоманды
+keys: макрос, макросы, макрокоманда, макрокоманды, создать макрос, openform, открытьформу, окно сообщения, конструктор макросов
+**Макрос** — последовательность готовых команд без программирования.
+### Создание
+1. **Создание → Макрос**.
+2. В списке «Добавить новую макрокоманду» выберите **ОткрытьФорму**: имя формы Студенты, режим Форма.
+3. Добавьте **ОкноСообщения**: «Форма студентов открыта».
+4. Сохраните как «мОткрытьСтудентов» и запустите (!).
+### Частые макрокоманды
+- ОткрытьФорму, ОткрытьОтчет, ОткрытьЗапрос
+- ЗакрытьОкно, ОкноСообщения
+- ПрименитьФильтр, НайтиЗапись, НаЗапись
+- ЗадатьЛокальнуюПеременную, ЗапуститьКод
+> Каталог макрокоманд справа показывает все команды по категориям.
+??? Создайте макрос, который открывает отчёт «Ведомость» в режиме просмотра.
+
+@@ macros | Условия в макросах
+keys: условие в макросе, если в макросе, if макрос, ветвление в макросе, иначе
+Блок **Если** выполняет команды только при выполнении условия.
+1. В конструкторе макроса добавьте **Если** из каталога «Управление программой».
+2. Условие: `[Forms]![Студенты]![Стипендия]=0`
+3. Внутри: **ОкноСообщения** «Стипендия не назначена».
+4. **Добавить Иначе** → другое ОкноСообщения.
+Пример проверки перед открытием отчёта:
+```text
+Если IsNull([Forms]![Меню]![cboГруппа]) Тогда
+    ОкноСообщения   Сообщение: "Выберите группу"
+    ОстановитьМакрос
+Иначе
+    ОткрытьОтчет   Имя: Ведомость, Режим: Просмотр
+Конец блока "Если"
+```
+??? Сделайте макрос: если оценка на форме меньше 3 — выводится предупреждение.
+
+@@ macros | Макросы данных
+keys: макрос данных, макросы данных, data macro, триггер, до изменения, после вставки, событие таблицы
+**Макросы данных** работают на уровне таблицы, как триггеры. Они срабатывают при любом изменении, даже из запроса.
+### Пример: запрет оценки вне 2–5
+1. Откройте таблицу **Оценки** в режиме таблицы.
+2. Вкладка **Таблица → До изменения**.
+3. **Если** `[Оценка]<2 Or [Оценка]>5` → **ВызватьОшибку**: номер 1, описание «Недопустимая оценка».
+### Другие события
+- **После вставки** — например, записать действие в журнал командой СоздатьЗапись.
+- **После обновления**, **После удаления**, **До удаления**.
+> Именованный макрос данных вызывают из обычного макроса командой ЗапуститьМакросДанных.
+??? Создайте макрос данных «После вставки», который записывает в таблицу Журнал дату добавления оценки.
+
+@@ macros | Макрос AutoExec
+keys: autoexec, автозапуск, при открытии базы, запуск при старте, автоматический запуск
+Макрос с именем **AutoExec** выполняется автоматически при открытии базы.
+1. **Создание → Макрос**.
+2. Команды: **ОткрытьФорму** ГлавноеМеню, **ОкноСообщения** «Добро пожаловать!».
+3. Сохраните строго под именем **AutoExec**.
+> Чтобы открыть базу без AutoExec, удерживайте **Shift** при открытии.
+Альтернатива: **Файл → Параметры → Текущая база данных → Форма просмотра**.
+??? Сделайте AutoExec, который открывает навигационную форму и показывает приветствие.
+
+@@ macros | Привязка макроса к событию
+keys: событие, события, нажатие кнопки, внедренный макрос, привязать макрос, on click, при открытии, после обновления
+Макрос можно запускать по событию элемента или формы.
+1. Конструктор формы → выделите кнопку → **F4** → вкладка **События**.
+2. Событие **Нажатие кнопки** → выберите готовый макрос из списка.
+3. Или кнопка «…» → **Макросы** → создайте **внедрённый макрос**, он хранится внутри формы.
+Частые события:
+- **Нажатие кнопки** (Click)
+- **Открытие** и **Загрузка** формы
+- **Текущая запись** — переход между записями
+- **До обновления** и **После обновления** — проверка и реакция на изменения
+??? Привяжите к событию «После обновления» поля КодГруппы макрос с сообщением «Группа изменена».
+
+@@ vba | VBA: процедуры и функции
+keys: vba, пример vba, модуль, процедура, функция, sub, function, редактор vba, alt f11, программирование, код
+VBA — язык программирования внутри Access. Редактор открывается по **Alt+F11** или через **Создание → Модуль**.
+- **Sub** — процедура, выполняет действия.
+- **Function** — функция, возвращает значение; её можно вызвать из запроса или формы.
+```vba
+Option Compare Database
+Option Explicit
+
+' Функция: оценка словом
+Public Function ОценкаСловом(ByVal n As Integer) As String
+    Select Case n
+        Case 5: ОценкаСловом = "Отлично"
+        Case 4: ОценкаСловом = "Хорошо"
+        Case 3: ОценкаСловом = "Удовлетворительно"
+        Case Else: ОценкаСловом = "Неудовлетворительно"
+    End Select
+End Function
+
+' Процедура: приветствие
+Public Sub Привет()
+    MsgBox "Добро пожаловать в базу «Колледж»!", vbInformation
+End Sub
+```
+В запросе функцию используют так: `Словом: ОценкаСловом([Оценка])`.
+> Запуск процедуры в редакторе — курсор внутри Sub и **F5**. Окно отладки — **Ctrl+G**.
+??? Напишите функцию РазмерСтипендии(балл As Double), которая возвращает 0, 25000 или 35000 в зависимости от среднего балла.
+
+@@ vba | VBA: события форм
+keys: события формы, form_load, form_current, beforeupdate, afterupdate, click, обработчик события, процедура обработки событий, cancel
+Код события: свойство события → «…» → **Программы**. Access создаст заготовку процедуры.
+```vba
+' При открытии формы — перейти на новую запись
+Private Sub Form_Load()
+    DoCmd.GoToRecord , , acNewRec
+End Sub
+
+' Проверка перед сохранением записи
+Private Sub Form_BeforeUpdate(Cancel As Integer)
+    If Nz(Me.Оценка, 0) < 2 Or Nz(Me.Оценка, 0) > 5 Then
+        MsgBox "Оценка должна быть от 2 до 5", vbExclamation
+        Cancel = True
+    End If
+End Sub
+
+' При смене записи — показать возраст в заголовке
+Private Sub Form_Current()
+    If Not IsNull(Me.ДатаРождения) Then
+        Me.Caption = "Возраст: " & DateDiff("yyyy", Me.ДатаРождения, Date)
+    End If
+End Sub
+```
+Порядок событий при открытии формы: Open → Load → Resize → Activate → Current.
+??? Напишите обработчик AfterUpdate для поля КодГруппы, который показывает название новой группы через DLookup.
+
+@@ vba | VBA: объект DoCmd
+keys: docmd, openform, openreport, runsql, gotorecord, setwarnings, close, requery, команды docmd, открыть форму кодом, открыть отчет кодом
+**DoCmd** выполняет действия Access из кода — так же, как макрокоманды.
+```vba
+DoCmd.OpenForm "Студенты", , , "КодГруппы=3"      ' форма с фильтром
+DoCmd.OpenReport "Ведомость", acViewPreview        ' отчёт в просмотре
+DoCmd.GoToRecord , , acNewRec                      ' новая запись
+DoCmd.Close acForm, "Студенты"                     ' закрыть форму
+
+' Запрос на изменение без лишних вопросов
+DoCmd.SetWarnings False
+DoCmd.RunSQL "UPDATE Студенты SET Стипендия = 0 WHERE КодГруппы = 5"
+DoCmd.SetWarnings True
+```
+> Вместо RunSQL надёжнее `CurrentDb.Execute "…", dbFailOnError` — он не задаёт вопросов и сообщает об ошибках.
+??? Сделайте кнопку, которая открывает форму Оценки только для текущего студента.
+
+@@ vba | VBA: переменные и типы данных
+keys: переменные, переменная, dim, типы данных vba, integer, string, long, double, const, option explicit, объявление переменной, variant
+Переменные объявляют через **Dim**.
+```vba
+Option Explicit              ' требовать объявления всех переменных
+
+Dim фамилия As String
+Dim курс As Integer          ' целое до 32 767
+Dim кол As Long              ' большое целое
+Dim балл As Double           ' дробное число
+Dim стипендия As Currency    ' деньги
+Dim датаЭкз As Date
+Dim староста As Boolean
+Dim x As Variant             ' любой тип, в том числе Null
+Const МАКС_БАЛЛ As Integer = 5
+
+фамилия = Me.Фамилия
+балл = DAvg("Оценка", "Оценки", "КодСтудента=" & Me.КодСтудента)
+```
+Область видимости: **Dim** внутри процедуры — локальная переменная, **Public** в модуле — глобальная.
+> Поле таблицы может быть пустым (Null) — для него используйте Variant или функцию Nz.
+??? Объявите переменные для ФИО преподавателя, его стажа и нагрузки в часах и заполните их значениями с формы.
+
+@@ vba | VBA: условия и циклы
+keys: if then else, select case, for next, do while, do until, цикл, циклы, условие vba, for each, ветвление
+### Условия
+```vba
+If балл >= 4.5 Then
+    MsgBox "Повышенная стипендия"
+ElseIf балл >= 4 Then
+    MsgBox "Обычная стипендия"
+Else
+    MsgBox "Без стипендии"
+End If
+```
+### Циклы
+```vba
+Dim i As Integer
+For i = 1 To 4
+    Debug.Print "Курс " & i
+Next i
+
+Dim ctl As Control
+For Each ctl In Me.Controls          ' перебрать элементы формы
+    If ctl.ControlType = acTextBox Then ctl.BackColor = vbWhite
+Next ctl
+
+Do While i > 0
+    i = i - 1
+Loop
+```
+> Debug.Print выводит текст в окно отладки (Ctrl+G) — удобно для проверки.
+??? Напишите цикл, который выводит в окно отладки таблицу умножения на 5.
+
+@@ vba | VBA: обработка ошибок
+keys: обработка ошибок, on error, ошибка vba, err number, err description, resume, goto, отладка, исключение
+Без обработки ошибок программа останавливается с окном отладчика. Надёжный шаблон:
+```vba
+Private Sub btnSave_Click()
+    On Error GoTo ErrHandler
+
+    CurrentDb.Execute "UPDATE Студенты SET Стипендия = 0 " & _
+        "WHERE КодСтудента=" & Me.КодСтудента, dbFailOnError
+    MsgBox "Сохранено", vbInformation
+
+ExitHere:
+    Exit Sub
+ErrHandler:
+    MsgBox "Ошибка " & Err.Number & ": " & Err.Description, vbCritical
+    Resume ExitHere
+End Sub
+```
+- `On Error Resume Next` — пропустить ошибку, использовать осторожно.
+- `On Error GoTo 0` — отключить обработчик.
+- Отладка: точка останова **F9**, пошаговое выполнение **F8**.
+??? Добавьте обработку ошибок в процедуру, которая открывает несуществующую форму, и выведите понятное сообщение.
+
+@@ vba | VBA: DAO Recordset
+keys: recordset, dao, набор записей, openrecordset, currentdb, movenext, eof, addnew, edit, update, перебор записей
+**Recordset** — набор записей, который можно обработать в цикле.
+```vba
+Public Sub ПовыситьСтипендию()
+    Dim db As DAO.Database
+    Dim rs As DAO.Recordset
+    On Error GoTo ErrHandler
+
+    Set db = CurrentDb
+    Set rs = db.OpenRecordset( _
+        "SELECT * FROM Студенты WHERE Стипендия > 0", dbOpenDynaset)
+
+    Do Until rs.EOF
+        rs.Edit
+        rs!Стипендия = rs!Стипендия * 1.1
+        rs.Update
+        rs.MoveNext
+    Loop
+    MsgBox "Готово", vbInformation
+
+ExitHere:
+    If Not rs Is Nothing Then rs.Close
+    Set rs = Nothing
+    Set db = Nothing
+    Exit Sub
+ErrHandler:
+    MsgBox Err.Description, vbCritical
+    Resume ExitHere
+End Sub
+```
+Новая запись: `rs.AddNew`, затем `rs!Фамилия = "Ахметова"`, затем `rs.Update`.
+> Количество записей: сначала `rs.MoveLast`, потом `rs.RecordCount`.
+??? С помощью Recordset посчитайте, сколько студентов имеют хотя бы одну двойку.
+
+@@ extra | Импорт из Excel и CSV
+keys: импорт, импортировать, excel, эксель, csv, текстовый файл, загрузить данные, transferspreadsheet, transfertext, из excel
+### Мастером
+1. **Внешние данные → Новый источник данных → Из файла → Excel** (для CSV — «Текстовый файл»).
+2. Выберите файл и способ: импорт в новую таблицу, добавление в существующую или связь.
+3. Отметьте «Первая строка содержит заголовки», задайте типы полей и ключ → Готово.
+### Кодом
+```vba
+DoCmd.TransferSpreadsheet acImport, acSpreadsheetTypeExcel12Xml, _
+    "СтудентыИмпорт", CurrentProject.Path & "\students.xlsx", True
+
+DoCmd.TransferText acImportDelim, , "ОценкиИмпорт", _
+    CurrentProject.Path & "\marks.csv", True
+```
+> Для CSV с русскими буквами сохраняйте файл в UTF-8 и выбирайте кодировку в «Дополнительно…» мастера.
+??? Импортируйте из Excel список новых студентов и добавьте их в таблицу Студенты запросом на добавление.
+
+@@ extra | Экспорт в Excel и CSV
+keys: экспорт, экспортировать, выгрузить, в excel, в csv, сохранить в excel, export
+1. Выделите таблицу или запрос в области навигации.
+2. **Внешние данные → Экспорт → Excel** (или «Текстовый файл»).
+3. Отметьте «Экспортировать данные с макетом и форматированием» и «Открыть целевой файл».
+4. Можно **сохранить шаги экспорта** и потом повторять его одним щелчком.
+```vba
+DoCmd.TransferSpreadsheet acExport, acSpreadsheetTypeExcel12Xml, _
+    "СреднийБаллПоГруппам", CurrentProject.Path & "\итоги.xlsx", True
+```
+??? Экспортируйте перекрёстный запрос с оценками в Excel и постройте там диаграмму.
+
+@@ extra | Разделение базы данных
+keys: разделение базы, разделить базу, front end, back end, серверная часть, многопользовательская, сетевая база, связанные таблицы, диспетчер связанных таблиц
+Чтобы с базой работали несколько человек, её делят на две части:
+- **серверная часть (back-end)** — только таблицы, лежит в общей папке;
+- **клиентская часть (front-end)** — формы, запросы, отчёты, VBA; копия у каждого пользователя.
+### Шаги
+1. Сделайте резервную копию.
+2. **Работа с базами данных → Перемещение данных → База данных Access**.
+3. Укажите место для файла «Колледж_be.accdb» → Разделить.
+4. Таблицы станут **связанными** — появится значок стрелки.
+Если файл перенесли: **Внешние данные → Диспетчер связанных таблиц** → обновите путь.
+??? Разделите базу «Колледж» и проверьте, что формы работают со связанными таблицами.
+
+@@ extra | Сжатие и восстановление
+keys: сжатие, сжать, восстановление, восстановить, размер файла, раздувается, compact, repair, повреждена база
+Access не уменьшает файл сам после удалений — место освобождает **сжатие**.
+1. Закройте все объекты.
+2. **Файл → Сведения → Сжать и восстановить базу данных** (кнопка есть и на вкладке «Работа с базами данных»).
+Автоматически: **Файл → Параметры → Текущая база данных → Сжимать при закрытии**.
+> Сжатие также исправляет мелкие повреждения. Перед ним делайте копию.
+??? Сравните размер файла базы до и после сжатия, удалив перед этим 100 тестовых записей.
+
+@@ extra | Защита паролем
+keys: пароль, защита, зашифровать, шифрование, защита паролем, монопольно, снять пароль, безопасность, accde
+### Установить пароль
+1. **Файл → Открыть → Обзор** → выберите базу → стрелка у кнопки «Открыть» → **Монопольно**.
+2. **Файл → Сведения → Зашифровать паролем** → введите пароль дважды.
+### Снять пароль
+Откройте базу монопольно → **Файл → Сведения → Расшифровать базу данных**.
+### Защита форм и кода
+**Файл → Сохранить как → Создать ACCDE** — пользователи не смогут менять формы, отчёты и VBA.
+> Забытый пароль восстановить нельзя — храните его надёжно.
+??? Создайте копию базы, зашифруйте её паролем и сделайте версию ACCDE.
+
+@@ extra | Типичные ошибки и их исправление
+keys: ошибка, ошибки, не работает, типичные ошибки, имя, несоответствие типов, нарушена целостность, не удается, повторяющиеся значения, просит параметр
+| Сообщение | Причина и решение |
+|---|---|
+| Не удаётся создать связь: нарушена целостность | В подчинённой таблице есть «сироты». Найдите их запросом с LEFT JOIN и исправьте |
+| Несоответствие типов в выражении | Число в кавычках или текст без них; у полей связи разные типы |
+| В поле видно #Имя? | Неверное имя поля в свойстве «Данные» |
+| В поле видно #Ошибка | Ошибка в формуле, деление на 0 или Null |
+| Запрос неожиданно просит параметр | Опечатка в имени поля — Access считает его параметром |
+| Запись нельзя удалить: есть связанные записи | Включена целостность — удалите связанные записи или включите каскад |
+| Повторяющиеся значения в индексе или ключе | Такое значение уже есть в уникальном поле |
+| Запрос на изменение ничего не делает | Отключено содержимое — нажмите «Включить содержимое» |
+??? В запросе появилось окно «Введите значение параметра Фамилиия». В чём ошибка и как её исправить?
+</script>
+
+<script>
+'use strict';
+/* =====================================================================
+   4. JAVASCRIPT
+   ===================================================================== */
+
+/* ---------- 4.1. Хранилища: настройки (localStorage), история (sessionStorage) ---------- */
+function makeStore(kind){
+  return {
+    get(k, d){ try{ const v = window[kind].getItem(k); return v === null ? d : JSON.parse(v); }catch(e){ return d; } },
+    set(k, v){ try{ window[kind].setItem(k, JSON.stringify(v)); }catch(e){} },
+    del(k){ try{ window[kind].removeItem(k); }catch(e){} }
+  };
+}
+const LS = makeStore('localStorage');
+const SS = makeStore('sessionStorage');
+
+const DEFAULTS = {
+  voiceOn:true, lang:'ru',
+  ttsMode:'free',                // 'free' — Web Speech, 'cloud' — Azure / Yandex / ElevenLabs
+  voiceName:'', rate:0.95, volume:1,
+  cloud:'azure',
+  azureKey:'', azureRegion:'westeurope', azureVoice:'ru-RU-SvetlanaNeural',
+  yaKey:'', yaVoice:'alena', yaProxy:'',
+  elKey:'', elVoice:'EXAVITQu4vr4xnSDxMaL',
+  aiProvider:'none', aiKey:'', aiModel:'', aiUrl:''
+};
+const S = Object.assign({}, DEFAULTS, LS.get('acc_settings', {}));
+function saveSettings(){ LS.set('acc_settings', S); }
+
+const state = {
+  hist: SS.get('acc_hist', []),  // история чата в пределах сессии браузера
+  mode: 'chat',                  // 'chat' | 'practice'
+  quiz: null, practice: null,
+  cloudFailed: false             // облачный голос не сработал → используем браузерный
+};
+
+/* ---------- 4.2. Разделы, тексты, аватар ---------- */
+const TOPICS = {
+  tables: {name:'Таблицы',   icon:'🗂️', intro:'Таблицы — фундамент базы: типы данных, свойства полей, ключи, нормализация и связи.'},
+  queries:{name:'Запросы',   icon:'🔎', intro:'Запросы отбирают, считают и изменяют данные. Здесь конструктор, параметры, итоги, запросы на изменение, функции и SQL.'},
+  forms:  {name:'Формы',     icon:'🧾', intro:'Формы — удобный интерфейс для ввода данных: мастер, конструктор, подчинённые формы и элементы управления.'},
+  reports:{name:'Отчёты',    icon:'📊', intro:'Отчёты готовят данные к печати: группировка, итоги, колонтитулы и экспорт в PDF.'},
+  macros: {name:'Макросы',   icon:'⚙️', intro:'Макросы автоматизируют действия без программирования.'},
+  vba:    {name:'VBA',       icon:'💻', intro:'VBA — программирование в Access: процедуры, события, DoCmd, Recordset и обработка ошибок.'},
+  extra:  {name:'Дополнительно', icon:'📦', intro:'Импорт и экспорт, разделение базы, сжатие, пароль и типичные ошибки.'}
+};
+
+const TXT = {
+  greetRu:'Здравствуйте! Я ваш помощник по Microsoft Access. С какого объекта начнём — таблицы, запросы, формы или отчёты?',
+  greetKk:'Сәлеметсіз бе! Мен Microsoft Access бойынша көмекшіңізбін. Қай нысаннан бастаймыз — кестелер, сұраулар, пішіндер немесе есептер?',
+  greetNote:'Объясняю по шагам на примере учебной базы **«Колледж»**, показываю код SQL и VBA, провожу **тесты** с регистрацией по имени и **практикум**. Понимаю речь: нажмите 🎤 или «🎙 Поговорить голосом» внизу.',
+  offRu:'Я помогаю только с Microsoft Access 🙂 Давайте вернёмся к теме: спросите про таблицы, запросы, формы, отчёты, макросы или VBA.',
+  offKk:'Мен тек Microsoft Access бойынша көмектесемін 🙂 Кестелер, сұраулар, пішіндер, есептер, макростар немесе VBA туралы сұраңыз.',
+  kkNote:'ℹ️ Кіріктірілген білім базасы орыс тілінде. Қазақша толық жауап алу үшін баптауларда ИИ кілтін қосыңыз.',
+  phRu:'Задайте вопрос по Access… (Enter — отправить)',
+  phKk:'Access бойынша сұрақ қойыңыз… (Enter — жіберу)',
+  help:'### Что я умею\n- Объясняю все объекты Access: **таблицы, запросы, формы, отчёты, макросы, VBA**.\n- Показываю SQL и VBA с кнопкой «Копировать».\n- Даю мини-задания, провожу **тест** из 10 вопросов и **практикум** с проверкой решения.\n- Читаю ответы вслух и понимаю речь: вопросы и команды голосом (🎤, «🎙 Поговорить голосом»).\n- Веду список результатов тестов (📋 Результаты) с выгрузкой в Excel.\n- С ключом ИИ в настройках отвечаю на любые вопросы по Access, в том числе на казахском.',
+  voiceHelp:'### 🎙 Голосовые команды\n- «Стоп», «повтори», «продолжи» — управление чтением\n- «Громче», «тише», «быстрее», «медленнее»\n- «Открой запросы», «начни тест», «тест по таблицам, формам и отчётам», «дай задание»\n- В тесте: «ответ Б» или «второй», затем «дальше»\n- «Покажи результаты» — список баллов\n- «Говори по-казахски», «говори по-русски»\n- «Выключи микрофон» — закончить голосовой диалог\n\nВопросы задавайте обычными словами, например: «Как сделать запрос с параметром?»'
+};
+
+const AVATAR = '<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="32" fill="#dbe7ff"/><circle cx="32" cy="13" r="7" fill="#4a3426"/><path d="M12 64c1-14 9-21 20-21s19 7 20 21z" fill="#1a56db"/><path d="M27 43l5 7 5-7z" fill="#fff"/><circle cx="32" cy="29" r="12" fill="#f5cfb0"/><path d="M20 29c0-9 5-14 12-14s12 5 12 14c-3-5-7-7-12-7s-9 2-12 7z" fill="#4a3426"/><g fill="none" stroke="#0b3a75" stroke-width="1.6"><circle cx="27.3" cy="30" r="3.3"/><circle cx="36.7" cy="30" r="3.3"/><path d="M30.6 30h2.8"/></g><path d="M28.5 35.8q3.5 2.4 7 0" stroke="#b5574b" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>';
+
+/* ---------- 4.3. Тест: 15 вопросов, в каждом прохождении случайные 10 ---------- */
+const QUIZ = [
+  {q:'Какой тип данных выбрать для поля КодСтудента, которое должно нумероваться автоматически?', o:['Счётчик','Числовой','Короткий текст','Мастер подстановок'], a:0, e:'Счётчик сам присваивает уникальный номер каждой новой записи — идеально для ключа.'},
+  {q:'Какое свойство поля не позволит ввести оценку 7?', o:['Условие на значение','Маска ввода','Формат поля','Подпись'], a:0, e:'Условие на значение Between 2 And 5 проверяет допустимый диапазон.'},
+  {q:'Как в Access реализуется связь «многие-ко-многим» между Студентами и Дисциплинами?', o:['Через промежуточную таблицу Оценки и две связи 1:М','Прямой связью между таблицами','Через индекс по полю Название','С помощью макроса AutoExec'], a:0, e:'Связь М:М всегда раскладывается на две связи 1:М через связующую таблицу.'},
+  {q:'Что делает флажок «Каскадное удаление связанных записей» для связи Группы → Студенты?', o:['При удалении группы удаляются все её студенты','Запрещает удалять группы','Удаляет пустые поля','Удаляет повторяющихся студентов'], a:0, e:'Каскадное удаление автоматически удаляет связанные записи в подчинённой таблице.'},
+  {q:'Какой запрос при запуске спрашивает у пользователя значение?', o:['Запрос с параметром','Перекрёстный запрос','Запрос на обновление','Итоговый запрос'], a:0, e:'Текст в квадратных скобках в условии отбора, например [Введите группу:], становится параметром.'},
+  {q:'Каким предложением SQL отбирают группы после группировки, например со средним баллом больше 4?', o:['HAVING','WHERE','ORDER BY','JOIN'], a:0, e:'WHERE фильтрует строки до группировки, а HAVING — готовые группы.'},
+  {q:'Какая функция заменит пустое значение (Null) на 0?', o:['Nz','IIf','Format','DLookup'], a:0, e:'Nz([Стипендия];0) вернёт 0 вместо Null.'},
+  {q:'Какой тип запроса повысит стипендию всем студентам группы на 10%?', o:['Запрос на обновление','Запрос на добавление','Запрос на создание таблицы','Перекрёстный запрос'], a:0, e:'UPDATE … SET Стипендия = Стипендия*1.1 меняет значения в существующих записях.'},
+  {q:'Как показать оценки студента прямо внутри формы «Студенты»?', o:['Подчинённой формой','Условным форматированием','Маской ввода','Макросом AutoExec'], a:0, e:'Подчинённая форма связывается с главной по полю КодСтудента.'},
+  {q:'Где в отчёте задаётся группировка записей по группам?', o:['Конструктор → Группировка и сортировка','Свойство «Маска ввода»','Окно «Схема данных»','Параметры Access'], a:0, e:'В панели «Группировка и сортировка» добавляют уровни группировки и итоги.'},
+  {q:'Какой макрос выполняется автоматически при открытии базы?', o:['AutoExec','AutoRun','Main','Startup'], a:0, e:'Макрос с именем AutoExec запускается сам; клавиша Shift при открытии отключает его.'},
+  {q:'Какая команда VBA открывает форму «Студенты»?', o:['DoCmd.OpenForm "Студенты"','Forms.Open "Студенты"','OpenForm.Do "Студенты"','Me.Open "Студенты"'], a:0, e:'Объект DoCmd выполняет действия Access из кода.'},
+  {q:'Какая конструкция VBA перехватывает ошибки?', o:['On Error GoTo ErrHandler','Try … Catch','If Error Then','Catch Err'], a:0, e:'В VBA нет Try/Catch — используется On Error GoTo метка.'},
+  {q:'Таблица (КодСтудента, КодДисциплины, ФИО студента, Оценка) с составным ключом из двух кодов. Какая нормальная форма нарушена?', o:['2НФ — ФИО зависит только от части ключа','1НФ — поля не атомарны','3НФ — транзитивная зависимость','Нарушений нет'], a:0, e:'ФИО зависит только от КодСтудента, то есть от части ключа, — это нарушение второй нормальной формы.'},
+  {q:'Чем уменьшить размер файла базы после удаления большого количества данных?', o:['Сжать и восстановить базу данных','Разделить базу данных','Зашифровать паролем','Создать ACCDE'], a:0, e:'Сжатие освобождает место, оставшееся после удалённых записей.'}
+];
+
+/* Тест среднего уровня: таблицы, формы, отчёты (в каждом прохождении 10 вопросов: 4 + 3 + 3).
+   Поле a — номер правильного варианта (здесь всегда 0, при показе варианты перемешиваются). */
+const QUIZ_TFR = [
+  // --- Таблицы ---
+  {t:'tables', q:'Нужно, чтобы в поле Оценка нельзя было ввести 7, а Access показал понятный текст ошибки. Какие свойства поля настроить?', o:['Условие на значение и Сообщение об ошибке','Маска ввода и Подпись','Формат поля и Значение по умолчанию','Индексированное поле и Обязательное поле'], a:0, e:'Условие на значение (Between 2 And 5) не пропустит неверную оценку, а Сообщение об ошибке объяснит причину.'},
+  {t:'tables', q:'Access не даёт включить «Обеспечение целостности данных» для связи Группы → Студенты. Какая причина наиболее вероятна?', o:['В таблице Студенты есть коды групп, которых нет в таблице Группы','В таблице Группы слишком много записей','Поле КодГруппы в таблице Студенты не ключевое','Для связи включено каскадное удаление'], a:0, e:'Целостность нельзя включить, пока в подчинённой таблице есть «сироты» — записи со ссылкой на несуществующую группу.'},
+  {t:'tables', q:'В таблице Группы поле КодГруппы имеет тип «Счётчик». Какой тип нужен полю КодГруппы в таблице Студенты, чтобы создать связь?', o:['Числовой (Длинное целое)','Счётчик','Короткий текст','Числовой (Байт)'], a:0, e:'Счётчик хранит длинное целое, поэтому внешний ключ должен быть Числовым с размером «Длинное целое».'},
+  {t:'tables', q:'Какое значение свойства «Индексированное поле» запретит двум студентам иметь одинаковый номер телефона?', o:['Да (Совпадения не допускаются)','Да (Допускаются совпадения)','Нет','Такого значения нет — нужно свойство «Обязательное поле»'], a:0, e:'Уникальный индекс не пропустит повторяющееся значение.'},
+  {t:'tables', q:'Для связи Группы → Студенты включено «Каскадное обновление связанных полей». Что произойдёт, если изменить КодГруппы в таблице Группы?', o:['Код автоматически изменится у всех студентов этой группы','Access запретит изменение','Все студенты этой группы будут удалены','У студентов поле КодГруппы станет пустым'], a:0, e:'Каскадное обновление переносит новое значение ключа во все связанные записи.'},
+  {t:'tables', q:'Как в таблице Студенты выбирать группу из выпадающего списка по названию, а хранить её код?', o:['Мастером подстановок','Маской ввода','Значением по умолчанию','Вычисляемым полем'], a:0, e:'Мастер подстановок делает поле списком из таблицы Группы: видим название, а храним код.'},
+  // --- Формы ---
+  {t:'forms', q:'Как показать на форме «Группы» список студентов только выбранной группы?', o:['Добавить подчинённую форму, связанную по полю КодГруппы','Сделать ленточную форму без фильтра','Применить условное форматирование','Добавить поле со списком в заголовок формы'], a:0, e:'Подчинённая форма показывает записи, связанные с текущей записью главной формы.'},
+  {t:'forms', q:'Какие свойства подчинённой формы связывают её с главной формой?', o:['Основные поля и Подчинённые поля','Источник записей и Источник строк','Присоединённый столбец и Число столбцов','Данные и Формат поля'], a:0, e:'«Основные поля» и «Подчинённые поля» задают общий ключ — например, КодГруппы.'},
+  {t:'forms', q:'У поля со списком Источник строк: SELECT КодГруппы, НазваниеГруппы FROM Группы. Как показывать название, а сохранять код?', o:['Присоединённый столбец 1, ширина столбцов 0см;3см','Присоединённый столбец 2, ширина столбцов 3см;0см','Число столбцов 1, присоединённый столбец 2','Присоединённый столбец 0, ширина столбцов 3см'], a:0, e:'Сохраняется первый столбец (код), а нулевая ширина скрывает его — на экране видно только название.'},
+  {t:'forms', q:'В поле формы вместо значения видно «#Имя?». В чём чаще всего причина?', o:['В свойстве «Данные» указано несуществующее поле','Деление на ноль в формуле','Запись заблокирована другим пользователем','Форма открыта в режиме макета'], a:0, e:'«#Имя?» означает, что Access не нашёл поле с таким именем — проверьте написание.'},
+  {t:'forms', q:'Что написать в свойстве «Данные» свободного поля, чтобы показать ФИО студента?', o:['=[Фамилия] & " " & [Имя]','[Фамилия] + [Имя]','Фамилия & Имя','=Фамилия; Имя'], a:0, e:'Вычисляемое поле начинается со знака =, а текст соединяется оператором &.'},
+  {t:'forms', q:'Какой вид формы показывает сверху одну запись, а снизу — таблицу всех записей с синхронным выбором?', o:['Разделённая форма','Ленточная форма','Форма «В один столбец»','Навигационная форма'], a:0, e:'Разделённая форма объединяет режим формы и режим таблицы.'},
+  {t:'forms', q:'Как сделать, чтобы форма «ГлавноеМеню» открывалась сама при запуске базы?', o:['Выбрать её в «Файл → Параметры → Текущая база данных → Форма просмотра»','Переименовать форму в AutoExec','Включить у формы свойство «Ввод данных»','Вставить её подчинённой формой в другую форму'], a:0, e:'Форма просмотра открывается автоматически. Имя AutoExec работает только у макроса, а не у формы.'},
+  // --- Отчёты ---
+  {t:'reports', q:'Отчёт сгруппирован по группам. Где разместить поле =Avg([Оценка]), чтобы получить средний балл каждой группы?', o:['В примечании группы','В области данных','В верхнем колонтитуле','В заголовке отчёта'], a:0, e:'Итог в примечании группы считается отдельно для каждой группы.'},
+  {t:'reports', q:'Как пронумеровать строки 1, 2, 3 заново в каждой группе отчёта?', o:['Поле с данными =1 и свойством «Сумма с накоплением» = «Для группы»','Поле =Count(*) в области данных','Поле =[Page] в области данных','Свойство «Индексированное поле» = Да'], a:0, e:'Сумма с накоплением складывает единицы и начинает счёт заново в каждой группе.'},
+  {t:'reports', q:'Какое выражение выведет в колонтитуле «Страница 2 из 5»?', o:['="Страница " & [Page] & " из " & [Pages]','="Страница " & [Pages] & " из " & [Page]','=Page() & " из " & Pages()','=[Страница] из [Страниц]'], a:0, e:'[Page] — номер текущей страницы, [Pages] — общее число страниц.'},
+  {t:'reports', q:'Как открыть отчёт «Ведомость» только для группы, выбранной в поле со списком cboГруппа?', o:['DoCmd.OpenReport "Ведомость", acViewPreview, , "КодГруппы=" & Me.cboГруппа','DoCmd.OpenForm "Ведомость"','Изменить «Источник строк» отчёта','Включить каскадное обновление связи'], a:0, e:'Четвёртый аргумент OpenReport — условие отбора записей.'},
+  {t:'reports', q:'В каком разделе отчёта разместить общий итог, который печатается один раз в конце?', o:['Примечание отчёта','Нижний колонтитул','Примечание группы','Заголовок группы'], a:0, e:'Примечание отчёта выводится один раз после всех данных, а колонтитулы — на каждой странице.'},
+  {t:'reports', q:'Как сохранить готовый отчёт в PDF средствами Access?', o:['Открыть предварительный просмотр и нажать «PDF или XPS»','Файл → Сведения → Сжать и восстановить','Внешние данные → Экспорт → Excel','Файл → Сохранить как → ACCDE'], a:0, e:'Кнопка «PDF или XPS» есть в предварительном просмотре и на вкладке «Внешние данные».'}
+];
+
+/* ---------- 4.4. Практикум: задания, критерии проверки (регулярные выражения) и эталон ---------- */
+const PRACTICE = [
+  {title:'Связь М:М', task:'В базе «Колледж» свяжите таблицы **Студенты** и **Дисциплины** отношением «многие-ко-многим». Опишите шаги.',
+   checks:[
+     {l:'Промежуточная таблица (например, Оценки)', r:/оценк|промежуточн|связующ|junction/i, h:'нужна промежуточная таблица, например Оценки'},
+     {l:'Внешние ключи КодСтудента и КодДисциплины', r:/код\s*студент[\s\S]*код\s*дисциплин|код\s*дисциплин[\s\S]*код\s*студент/i, h:'в промежуточной таблице должны быть оба внешних ключа'},
+     {l:'Окно «Схема данных»', r:/схем\S*\s+данн/i, h:'связи создаются в окне Работа с базами данных → Схема данных'},
+     {l:'Две связи «один-ко-многим»', r:/1\s*:\s*[мm]|один\s*-?\s*ко\s*-?\s*многим|две\s+связи|2\s+связи/i, h:'М:М — это две связи 1:М'},
+     {l:'Обеспечение целостности данных', r:/целостн/i, h:'отметьте «Обеспечение целостности данных»'}
+   ],
+   ref:'1. Создать таблицу Оценки: КодОценки (Счётчик, ключ), КодСтудента и КодДисциплины (Числовой), Оценка.\n2. Работа с базами данных → Схема данных → добавить Студенты, Оценки, Дисциплины.\n3. Перетащить КодСтудента из Студенты в Оценки, отметить «Обеспечение целостности».\n4. Перетащить КодДисциплины из Дисциплины в Оценки, так же.\n5. Получаются две связи 1:М — вместе это связь М:М.'},
+  {title:'Запрос с параметром', task:'Создайте запрос, который выводит **фамилии и имена студентов указанной группы** — название группы вводится при запуске.',
+   checks:[
+     {l:'Конструктор запросов или SQL', r:/конструктор|select/i, h:'создайте запрос через Создание → Конструктор запросов'},
+     {l:'Таблицы Студенты и Группы', r:/студент[\s\S]*групп|групп[\s\S]*студент/i, h:'нужны обе таблицы — Студенты и Группы'},
+     {l:'Параметр в квадратных скобках', r:/\[[^\]]+\]|параметр/i, h:'в условии отбора напишите, например, [Введите группу:]'},
+     {l:'Условие на поле НазваниеГруппы', r:/название\s*групп|услови\S*\s+отбор|where/i, h:'параметр ставится в «Условие отбора» поля НазваниеГруппы'}
+   ],
+   ref:'1. Создание → Конструктор запросов → таблицы Студенты и Группы.\n2. Поля: Фамилия, Имя, НазваниеГруппы.\n3. Условие отбора для НазваниеГруппы: [Введите группу:]\n```sql\nSELECT Студенты.Фамилия, Студенты.Имя\nFROM Группы INNER JOIN Студенты ON Группы.КодГруппы = Студенты.КодГруппы\nWHERE Группы.НазваниеГруппы = [Введите группу:];\n```'},
+  {title:'Итоговый запрос', task:'Посчитайте **средний балл по каждой дисциплине**. Опишите шаги или напишите SQL.',
+   checks:[
+     {l:'Группировка (Итоги или GROUP BY)', r:/итог|group\s+by|группиров/i, h:'включите Конструктор → Итоги или используйте GROUP BY'},
+     {l:'Функция Avg (среднее)', r:/avg|средн/i, h:'для поля Оценка выберите групповую операцию Avg'},
+     {l:'Таблицы Дисциплины и Оценки', r:/дисциплин[\s\S]*оценк|оценк[\s\S]*дисциплин/i, h:'нужны Дисциплины (название) и Оценки (баллы)'},
+     {l:'Группировка по названию дисциплины', r:/назван/i, h:'группировать нужно по полю Название'}
+   ],
+   ref:'```sql\nSELECT Дисциплины.Название, Round(Avg(Оценки.Оценка), 2) AS СреднийБалл\nFROM Дисциплины INNER JOIN Оценки ON Дисциплины.КодДисциплины = Оценки.КодДисциплины\nGROUP BY Дисциплины.Название;\n```'},
+  {title:'Форма с подчинённой формой', task:'Создайте форму **Группы**, в которой внизу виден **список студентов** выбранной группы.',
+   checks:[
+     {l:'Мастер форм или конструктор', r:/мастер|конструктор/i, h:'используйте Создание → Мастер форм'},
+     {l:'Подчинённая форма', r:/подчин|subform/i, h:'студенты выводятся в подчинённой форме'},
+     {l:'Связь по КодГруппы', r:/код\s*групп|основн\S*\s+пол|подчин\S*\s+пол/i, h:'основные и подчинённые поля = КодГруппы'},
+     {l:'Источник: таблицы Группы и Студенты', r:/групп[\s\S]*студент|студент[\s\S]*групп/i, h:'возьмите поля из таблиц Группы и Студенты'}
+   ],
+   ref:'1. Создание → Мастер форм.\n2. Поля из Группы (НазваниеГруппы, Специальность) и из Студенты (Фамилия, Имя).\n3. Вид данных «по Группы» → «Подчинённые формы» → Готово.\n4. Проверить у подчинённой формы: Основные поля = КодГруппы, Подчинённые поля = КодГруппы.'},
+  {title:'Отчёт-ведомость', task:'Сделайте отчёт **«Ведомость»**: студенты сгруппированы по группам, в конце каждой группы — **средний балл**.',
+   checks:[
+     {l:'Группировка по группе', r:/группиров|уровен|уровн/i, h:'добавьте группировку по НазваниеГруппы'},
+     {l:'Средний балл (Avg)', r:/avg|средн/i, h:'в примечании группы поле =Avg([Оценка])'},
+     {l:'Примечание группы', r:/примечани|итог|колонтитул/i, h:'итог размещается в разделе «примечание группы»'},
+     {l:'Мастер отчётов или конструктор', r:/мастер|конструктор/i, h:'используйте Создание → Мастер отчётов'}
+   ],
+   ref:'1. Запрос с полями НазваниеГруппы, Фамилия, Оценка.\n2. Создание → Мастер отчётов → уровень группировки НазваниеГруппы → «Итоги…» → Avg для поля Оценка.\n3. Или в конструкторе: Группировка и сортировка → группа НазваниеГруппы «с разделом примечания», в примечании поле =Avg([Оценка]).'},
+  {title:'Кнопка на VBA', task:'Напишите процедуру для кнопки **btnДвойки**, которая показывает сообщение: сколько в базе оценок «2».',
+   checks:[
+     {l:'Процедура события Click', r:/sub|click|нажати/i, h:'код пишется в Private Sub btnДвойки_Click()'},
+     {l:'Подсчёт через DCount или Recordset', r:/dcount|recordset|count/i, h:'проще всего DCount("*","Оценки","Оценка=2")'},
+     {l:'Условие Оценка = 2', r:/оценка\s*=\s*2|оценка\s*<\s*3|=\s*2/i, h:'условие отбора: Оценка=2'},
+     {l:'Вывод через MsgBox', r:/msgbox|сообщени/i, h:'выведите результат через MsgBox'}
+   ],
+   ref:'```vba\nPrivate Sub btnДвойки_Click()\n    Dim n As Long\n    n = DCount("*", "Оценки", "Оценка=2")\n    MsgBox "Оценок «2» в базе: " & n, vbInformation\nEnd Sub\n```'}
+];
+
+/* ---------- 4.5. Системный промт для ИИ (разделы 1–3 задания) ---------- */
+const SYSTEM_PROMPT = `Ты — «Access-Наставник», доброжелательный преподаватель по СУБД Microsoft Access для студентов колледжа (специальности: информационные системы, программирование, 1С и автоматизация бизнес-процессов). Автор курса: Индира Закировна, Жамбылский политехнический высший колледж.
+Отвечай на русском языке (если просят — на казахском), просто и по шагам, с примерами.
+Темы: таблицы (типы данных, маска ввода, условие на значение, значение по умолчанию, индексы, ключи, мастер подстановок, нормализация 1НФ–3НФ, схема данных, связи 1:1, 1:М, М:М, целостность, каскадное обновление и удаление); запросы (выборка, параметры, вычисляемые поля, итоговые, перекрёстные, создание таблицы, добавление, обновление, удаление, построитель выражений, функции IIf, DateDiff, Format, Nz, DSum, DLookup, SQL: SELECT, JOIN, WHERE, GROUP BY, HAVING, подзапросы); формы (мастер, конструктор, ленточные, разделённые, подчинённые, поле со списком, вкладки, кнопки, условное форматирование, навигационная форма); отчёты (группировка, итоги, колонтитулы, подчинённые отчёты, параметры, PDF); макросы (макрокоманды, условия, макросы данных, AutoExec, события); VBA (процедуры, функции, события форм, DoCmd, переменные, циклы, обработка ошибок, DAO Recordset); импорт и экспорт, разделение базы, сжатие, пароль, типичные ошибки.
+Все примеры строй на учебной базе «Колледж»: Группы(КодГруппы, НазваниеГруппы, Специальность, Курс), Студенты(КодСтудента, Фамилия, Имя, ДатаРождения, КодГруппы, Телефон, Стипендия), Преподаватели(КодПреподавателя, ФИО, Стаж, Телефон), Дисциплины(КодДисциплины, Название, Часы, КодПреподавателя), Оценки(КодОценки, КодСтудента, КодДисциплины, Оценка, ДатаЭкзамена).
+Формат ответа (Markdown):
+- короткое объяснение в 2–3 предложениях;
+- пошаговая инструкция нумерованным списком в виде «Вкладка → кнопка → действие» (названия ленты русской версии Access);
+- код SQL и VBA только в блоках \`\`\`sql и \`\`\`vba;
+- последней строкой: «!! **✍️ Мини-задание.** » и одно задание для самопроверки.
+Заголовки — только «###». Можно использовать таблицы Markdown.
+Если вопрос не про Microsoft Access и базы данных — вежливо откажись и предложи вернуться к теме Access.`;
+
+/* ---------- 4.6. Мелкие утилиты ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const escCode = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function toast(msg, ms){
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast.tm); toast.tm = setTimeout(() => t.classList.remove('show'), ms || 3500);
+}
+function shuffle(a){ for(let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+async function copyText(t){
+  try{ await navigator.clipboard.writeText(t); }
+  catch(e){ const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+}
+
+/* =====================================================================
+   4.7. МИНИ-MARKDOWN: заголовки, списки, таблицы, советы, задания, код
+   ===================================================================== */
+function inline(s){
+  return esc(s)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+}
+
+// Простая подсветка синтаксиса SQL / VBA
+const KW_SQL = new Set('select distinct top from where and or not in exists between like is null order by group having inner left right join on as insert into values update set delete transform pivot parameters asc desc avg sum count min max round text'.split(' '));
+const KW_VBA = new Set('option compare database explicit public private sub function end dim as string integer long double currency date boolean variant const if then else elseif select case for each to next do while until loop exit set nothing not is and or on error goto resume byval byref true false me call with in'.split(' '));
+function highlight(code, lang){
+  if(lang === 'vba'){
+    return code.replace(/("[^"\n]*")|('[^\n]*)|([A-Za-z_]+)/g, (m, s, c, w) =>
+      s ? '<span class="hl-s">' + s + '</span>' : c ? '<span class="hl-c">' + c + '</span>' :
+      KW_VBA.has(w.toLowerCase()) ? '<span class="hl-k">' + w + '</span>' : w);
+  }
+  if(lang === 'sql'){
+    return code.replace(/("[^"\n]*"|'[^'\n]*'|#[^#\n]*#)|([A-Za-z_]+)/g, (m, s, w) =>
+      s ? '<span class="hl-s">' + s + '</span>' :
+      KW_SQL.has(w.toLowerCase()) ? '<span class="hl-k">' + w + '</span>' : w);
+  }
+  return code;
+}
+function codeBlock(code, lang){
+  const L = (lang || 'text').toLowerCase();
+  const name = {sql:'SQL', vba:'VBA', text:'Текст'}[L] || L.toUpperCase();
+  return '<div class="code"><div class="code-h"><span>' + name + '</span>' +
+    '<button type="button" class="copy" data-copy>📋 Копировать</button></div>' +
+    '<pre><code>' + highlight(escCode(code), L) + '</code></pre></div>';
+}
+function tableHtml(rows){
+  const cells = r => r.trim().replace(/^\||\|$/g, '').split('|').map(c => inline(c.trim()));
+  const body = rows.filter(r => !/^\|\s*:?-{2,}/.test(r.trim()));
+  let h = '<div class="tbl"><table><thead><tr>' + cells(body[0]).map(c => '<th>' + c + '</th>').join('') + '</tr></thead><tbody>';
+  body.slice(1).forEach(r => { h += '<tr>' + cells(r).map(c => '<td>' + c + '</td>').join('') + '</tr>'; });
+  return h + '</tbody></table></div>';
+}
+function md(src){
+  const lines = String(src).replace(/\r/g, '').split('\n');
+  let html = '', i = 0, list = null;
+  const close = () => { if(list){ html += '</' + list + '>'; list = null; } };
+  const BREAK = /^(```|#{1,6}\s|>|!!\s|\||\s*\d+[.)]\s|\s*[-*•]\s)/;
+  while(i < lines.length){
+    const l = lines[i];
+    let m = l.match(/^```\s*(\w*)/);
+    if(m){                                     // блок кода
+      close(); const buf = []; i++;
+      while(i < lines.length && !/^```/.test(lines[i])){ buf.push(lines[i]); i++; }
+      i++; html += codeBlock(buf.join('\n'), m[1]); continue;
+    }
+    if(/^\|/.test(l.trim())){                  // таблица
+      close(); const rows = [];
+      while(i < lines.length && /^\|/.test(lines[i].trim())){ rows.push(lines[i]); i++; }
+      html += tableHtml(rows); continue;
+    }
+    if(/^#{1,6}\s+/.test(l)){ close(); html += '<h4>' + inline(l.replace(/^#{1,6}\s+/, '')) + '</h4>'; i++; continue; }
+    if(/^>\s?/.test(l)){ close(); html += '<div class="tip">' + inline(l.replace(/^>\s?/, '')) + '</div>'; i++; continue; }
+    if(/^!!\s/.test(l)){ close(); html += '<div class="task">' + inline(l.replace(/^!!\s/, '')) + '</div>'; i++; continue; }
+    m = l.match(/^\s*\d+[.)]\s+(.*)/);
+    if(m){ if(list !== 'ol'){ close(); html += '<ol>'; list = 'ol'; } html += '<li>' + inline(m[1]) + '</li>'; i++; continue; }
+    m = l.match(/^\s*[-*•]\s+(.*)/);
+    if(m){ if(list !== 'ul'){ close(); html += '<ul>'; list = 'ul'; } html += '<li>' + inline(m[1]) + '</li>'; i++; continue; }
+    if(!l.trim()){ close(); i++; continue; }
+    close();                                   // обычный абзац (склеиваем строки подряд)
+    const buf = [l]; i++;
+    while(i < lines.length && lines[i].trim() && !BREAK.test(lines[i])){ buf.push(lines[i]); i++; }
+    html += '<p>' + inline(buf.join(' ')) + '</p>';
+  }
+  close();
+  return html;
+}
+
+/* Делим HTML абзаца на предложения (не разрывая теги <b>, <code>) и оборачиваем
+   каждое в <span class="snt"> — так можно подсвечивать произносимое предложение. */
+function splitHtml(html){
+  const out = []; let cur = '', inTag = false, depth = 0;
+  for(let i = 0; i < html.length; i++){
+    const c = html[i]; cur += c;
+    if(c === '<'){ inTag = true; depth += html[i + 1] === '/' ? -1 : 1; continue; }
+    if(c === '>'){ inTag = false; continue; }
+    if(inTag) continue;
+    if(depth === 0 && /[.!?…]/.test(c) && /\s/.test(html[i + 1] || '')){ out.push(cur.trim()); cur = ''; }
+  }
+  if(cur.trim()) out.push(cur.trim());
+  return out;
+}
+function prepSentences(root){
+  root.querySelectorAll('p, li, h4, .tip, .task').forEach(el => {
+    if(el.closest('.nospeak') || el.closest('.code')) return;
+    el.innerHTML = splitHtml(el.innerHTML).map(s => '<span class="snt">' + s + '</span>').join(' ');
+  });
+}
+
+/* =====================================================================
+   4.8. БАЗА ЗНАНИЙ: разбор блока #kb и поиск по ключевым словам и синонимам
+   ===================================================================== */
+// «Понимание речи»: как распознаватель записывает произнесённые термины → правильное написание
+const W = s => new RegExp('(?<![\\p{L}\\p{N}])(?:' + s + ')(?![\\p{L}\\p{N}])', 'giu');
+const SPEECH_FIX = [
+  [W('акцесс|аксесс|аксес|эксесс|эксес|ак сесс|экцесс'), 'Access'],
+  [W('ви би эй|ви-би-эй|виби эй|вэ бэ а|ви би а|виба|вба'), 'VBA'],
+  [W('эс кью эль|эс-кью-эль|эскьюэль|эс ку эль|эс кю эль|скуль|сиквел|эскуэль'), 'SQL'],
+  [W('селект|селекта'), 'SELECT'],
+  [W('иннер джойн|инер джойн|иннер джоин'), 'INNER JOIN'],
+  [W('лефт джойн|левый джойн|лефт джоин'), 'LEFT JOIN'],
+  [W('джойн|джоин|джойна|джойном'), 'JOIN'],
+  [W('груп бай|групп бай|гроуп бай|группа бай'), 'GROUP BY'],
+  [W('ордер бай'), 'ORDER BY'],
+  [W('хэвинг|хавинг|хевинг|хэвин|хевин'), 'HAVING'],
+  [W('апдейт|апдэйт'), 'UPDATE'],
+  [W('инсерт'), 'INSERT'],
+  [W('д лукап|ди лукап|дэ лукап|длукап|д лук ап|ди лук ап|дилукап'), 'DLookup'],
+  [W('д сам|ди сам|дэ сам|дсам|ди сум'), 'DSum'],
+  [W('д каунт|ди каунт|дэ каунт|дкаунт|дикаунт'), 'DCount'],
+  [W('ай иф|ииф|айиф'), 'IIf'],
+  [W('эн зет|энзет|эн зэт|эн зед'), 'Nz'],
+  [W('дейт дифф|дейт диф|дэйт дифф|дейтдифф|дата дифф'), 'DateDiff'],
+  [W('дейт адд|дейтадд|дэйт адд'), 'DateAdd'],
+  [W('ду кмд|ду смд|ду си эм ди|докмд|ду комманд|ду команд'), 'DoCmd'],
+  [W('рекордсет|рекорд сет|рекордсэт|рекорсет|рекордсета'), 'Recordset'],
+  [W('автоэкзек|авто экзек|автоэксек|авто эксек|ауто экзек|автоэкзэк'), 'AutoExec'],
+  [W('он эррор|он еррор|он ерор|он эрор'), 'On Error'],
+  [W('месседж бокс|мсг бокс|мэседж бокс|месадж бокс|мсгбокс'), 'MsgBox'],
+  [W('пэ дэ эф|пи ди эф|пдф|пе де эф'), 'PDF'],
+  [W('эксель|ексель|иксель|эксел'), 'Excel'],
+  [W('си эс ви|цсв|си-эс-ви'), 'CSV'],
+  [W('много ко многим|многие к многим|много к многим'), 'многие ко многим'],
+  [W('один к многим|один ко многому'), 'один ко многим']
+];
+function fixSpeech(s){
+  let t = String(s);
+  for(const [re, to] of SPEECH_FIX) t = t.replace(re, to);
+  return t.replace(/\s+/g, ' ').trim();
+}
+
+// Синонимы и устойчивые выражения → служебные метки (латиницей, чтобы не «обрезались» стеммером)
+const SYN = [
+  [/многи[ех]\s*-?\s*ко\s*-?\s*многим/g, ' mmrel '],
+  [/(^|[^\p{L}\p{N}])[мm]\s*:\s*[мm](?!\p{L})/gu, '$1 mmrel '],
+  [/один\s*-?\s*ко\s*-?\s*многим/g, ' onemany '],
+  [/(^|[^\p{L}\p{N}])1\s*:\s*[мm](?!\p{L})/gu, '$1 onemany '],
+  [/один\s*-?\s*к\s*-?\s*одному/g, ' oneone '],
+  [/(^|[^\p{L}\p{N}])1\s*:\s*1(?!\p{N})/gu, '$1 oneone '],
+  [/[123]\s*-?\s*(?:я\s*)?нф/g, ' normform '],
+  [/нормальн\S*\s+форм\S*/g, ' normform '],
+  [/н[оа]рмализ\S*/g, ' normform '],
+  [/запрос\S*\s+на\s+создани\S*\s+таблиц\S*|select\s+into|создани\S*\s+таблиц\S*\s+запрос\S*/g, ' maketable '],
+  [/на\s+добавлени\S*/g, ' appendq '],
+  [/на\s+обновлени\S*/g, ' updateq '],
+  [/на\s+удалени\S*/g, ' deleteq '],
+  [/visual\s*basic|вба|виба/g, ' vba '],
+  [/эс\s*кью\s*эль|сиквел/g, ' sql '],
+  // казахские слова → русские
+  [/кесте\S*/g, ' таблица '], [/сұрау\S*/g, ' запрос '], [/пішін\S*/g, ' форма '],
+  [/есеп\S*/g, ' отчет '], [/байланыс\S*/g, ' связь '], [/кілт\S*/g, ' ключ ']
+];
+const STOP = new Set(('как что это для при мне где или так все его она они про над под какой какая какие каким какое такое такой ' +
+  'нужно надо можно сделать создать создание пример примеры покажи показать объясни расскажи помоги пожалуйста ' +
+  'access аксесс microsoft через чем чтобы если тема вопрос работа работать использовать есть был будет мой моя ' +
+  'the and вот там тут ещё еще уже очень зачем почему когда сколько дай дайте хочу ' +
+  'база базы базу базе базой данные данных').split(' '));
+
+function norm(s){
+  let t = ' ' + fixSpeech(s).toLowerCase().replace(/ё/g, 'е') + ' ';
+  for(const [re, to] of SYN) t = t.replace(re, to);
+  return t.replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+}
+function stem(w){
+  if(/^[a-z0-9]+$/.test(w)) return w;          // латиница и служебные метки — без изменений
+  return w.length > 6 ? w.slice(0, -2) : w.length > 4 ? w.slice(0, -1) : w;
+}
+function stemsOf(s){
+  return norm(s).split(' ').filter(w => w && !STOP.has(w) && (w.length >= 3 || /^[a-z0-9]{2,}$/.test(w))).map(stem);
+}
+function stemMatch(a, b){
+  if(a === b) return 3;
+  if(a.length >= 4 && b.length >= 4 && (a.startsWith(b) || b.startsWith(a))) return 2;
+  return 0;
+}
+
+function parseKB(src){
+  return src.split(/^@@\s*/m).slice(1).map((block, id) => {
+    const lines = block.replace(/\r/g, '').split('\n');
+    const head = lines.shift(); const bar = head.indexOf('|');
+    const t = head.slice(0, bar).trim(), title = head.slice(bar + 1).trim();
+    let keys = '';
+    if(/^keys:/i.test(lines[0] || '')) keys = lines.shift().replace(/^keys:/i, '');
+    const parts = lines.join('\n').split(/^\?\?\?\s*/m);
+    return { id, t, title, keys, answer: parts[0].trim(), task: (parts[1] || '').trim(),
+             stems: stemsOf(title + ' ' + keys), titleNorm: norm(title) };
+  });
+}
+const KB = parseKB($('#kb').textContent);
+
+function search(q){
+  const qn = norm(q);
+  const exact = KB.find(e => e.titleNorm === qn);
+  if(exact) return [{e: exact, score: 99}];
+  const qs = stemsOf(q).map(correctStem);
+  if(!qs.length) return [];
+  return KB.map(e => {
+    // score — сила совпадения; w — то же с учётом редкости слова (редкие слова важнее)
+    let score = 0, w = 0;
+    for(const s of qs){
+      let best = 0; for(const k of e.stems){ best = Math.max(best, stemMatch(k, s)); if(best === 3) break; }
+      score += best; if(best) w += best / docFreq(s);
+    }
+    return {e, score, w};
+  }).filter(r => r.score > 0).sort((a, b) => b.score - a.score || b.w - a.w);
+}
+// В скольких темах встречается слово (для ранжирования при равных баллах)
+const DF = {};
+function docFreq(s){
+  if(!(s in DF)) DF[s] = Math.max(1, KB.filter(e => e.stems.some(k => stemMatch(k, s))).length);
+  return DF[s];
+}
+// Опечатки и ошибки распознавания: незнакомое слово заменяем на ближайшее слово из базы
+let ALL_STEMS = null;
+function lev(a, b){
+  if(Math.abs(a.length - b.length) > 2) return 9;
+  let prev = Array.from({length: b.length + 1}, (_, j) => j);
+  for(let i = 1; i <= a.length; i++){
+    const cur = [i];
+    for(let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[b.length];
+}
+function correctStem(s){
+  if(!ALL_STEMS) ALL_STEMS = [...new Set(KB.flatMap(e => e.stems))];
+  if(s.length < 5 || ALL_STEMS.some(k => stemMatch(k, s))) return s;
+  const max = s.length >= 8 ? 2 : 1;
+  let best = s, bd = max + 1;
+  for(const k of ALL_STEMS){ if(k.length < 4) continue; const d = lev(s, k); if(d < bd){ bd = d; best = k; } }
+  return bd <= max ? best : s;
+}
+function kbMd(e){ return e.answer + (e.task ? '\n\n!! **✍️ Мини-задание.** ' + e.task : ''); }
+
+/* =====================================================================
+   4.9. ОТРИСОВКА СООБЩЕНИЙ
+   ===================================================================== */
+const chat = $('#chat');
+const input = $('#input');
+
+function actionsHtml(src){
+  return '<div class="actions">' +
+    '<button type="button" data-a="play" title="Прослушать заново">▶</button>' +
+    '<button type="button" data-a="pause" title="Пауза / продолжить">⏸</button>' +
+    '<button type="button" data-a="stop" title="Стоп">⏹</button>' +
+    (src ? '<span class="src">' + esc(src) + '</span>' : '') + '</div>';
+}
+function botShell(lang){
+  const w = document.createElement('div');
+  w.className = 'msg bot'; w.dataset.lang = lang || 'ru';
+  w.innerHTML = '<div class="ava">' + AVATAR + '</div><div class="bubble"><div class="content"></div></div>';
+  return w;
+}
+function chipsEl(chips){
+  const d = document.createElement('div'); d.className = 'chips';
+  chips.forEach(c => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = c.label;
+    if(c.ask) b.dataset.ask = c.ask; if(c.act) b.dataset.act = c.act;
+    d.appendChild(b);
+  });
+  return d;
+}
+function scrollToMsg(el){
+  if(el.classList.contains('bot') && el.offsetHeight > chat.clientHeight * 0.8) el.scrollIntoView({block:'start', behavior:'smooth'});
+  else chat.scrollTo({top: chat.scrollHeight, behavior:'smooth'});
+}
+function saveHist(){
+  if(state.hist.length > 200) state.hist = state.hist.slice(-200);
+  SS.set('acc_hist', state.hist);
+}
+
+/**
+ * Добавить сообщение в чат.
+ * opts: lang ('ru'|'kk'), chips [{label, ask|act}], src (подпись источника),
+ *       note (доп. текст, не озвучивается), speak (озвучить), save (сохранить в историю)
+ */
+function addMsg(from, text, opts){
+  const o = Object.assign({lang:'ru', chips:null, src:'', note:'', speak:true, save:true, voice:false}, opts || {});
+  let el;
+  if(from === 'user'){
+    el = document.createElement('div'); el.className = 'msg user';
+    el.innerHTML = '<div class="bubble">' + (o.voice ? '<span class="mic-tag" title="Сказано голосом">🎤</span>' : '') +
+      esc(text).replace(/\n/g, '<br>') + '</div>';
+  } else {
+    el = botShell(o.lang);
+    const bubble = el.querySelector('.bubble'), content = el.querySelector('.content');
+    content.innerHTML = md(text); prepSentences(content);
+    if(o.note){ const n = document.createElement('div'); n.className = 'note nospeak'; n.innerHTML = md(o.note); bubble.appendChild(n); }
+    if(o.chips && o.chips.length) bubble.appendChild(chipsEl(o.chips));
+    bubble.insertAdjacentHTML('beforeend', actionsHtml(o.src));
+  }
+  chat.appendChild(el); scrollToMsg(el);
+  if(o.save){ state.hist.push({from, md:text, lang:o.lang, chips:o.chips, src:o.src, note:o.note, voice:o.voice}); saveHist(); }
+  if(from === 'bot' && o.speak){ if(S.voiceOn) Speech.speak(el); else Voice.afterBot(); }
+  return el;
+}
+function showTyping(){
+  const el = botShell('ru'); el.querySelector('.content').innerHTML = '<span class="dots"><i></i><i></i><i></i></span>';
+  chat.appendChild(el); scrollToMsg(el); return el;
+}
+function sectionChips(){
+  return Object.keys(TOPICS).map(k => ({label: TOPICS[k].icon + ' ' + TOPICS[k].name, act: 'sec:' + k}))
+    .concat([{label:'📝 Тест: таблицы, формы, отчёты', act:'quiz-tfr'}, {label:'✅ Общий тест', act:'quiz'},
+             {label:'🛠 Практикум', act:'practice'}, {label:'📋 Результаты', act:'results'}]);
+}
+
+/* =====================================================================
+   4.10. ОЗВУЧКА
+   Режим А — Web Speech API (бесплатно), режим Б — Azure / Yandex / ElevenLabs.
+   Текст делится на предложения; текущее подсвечивается.
+   ===================================================================== */
+const hasWebSpeech = () => 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+
+// Ждём загрузки списка голосов (событие voiceschanged), но не дольше 3 секунд
+const voicesReady = new Promise(res => {
+  if(!hasWebSpeech()) return res([]);
+  const got = () => { const v = speechSynthesis.getVoices(); if(v.length){ res(v); return true; } return false; };
+  if(got()) return;
+  speechSynthesis.addEventListener('voiceschanged', () => { got(); fillVoiceSelect(); });
+  setTimeout(() => res(speechSynthesis.getVoices()), 3000);
+});
+const voices = () => hasWebSpeech() ? speechSynthesis.getVoices() : [];
+const FEMALE = /svetlana|dariya|daria|irina|milena|alena|alyona|anna|elena|yelena|katya|ekaterina|tatyana|natalia|polina|aigul|female|жен/i;
+const MALE = /pavel|dmitry|maxim|yuri|daulet|male|муж/i;
+
+// Выбор женского голоса по приоритету из задания
+function pickVoice(lang){
+  const vs = voices(); const pref = lang === 'kk' ? 'kk' : 'ru';
+  const isLang = v => v.lang.toLowerCase().replace('_', '-').startsWith(pref);
+  if(S.voiceName){ const v = vs.find(x => x.name === S.voiceName); if(v && isLang(v)) return v; }
+  const prio = lang === 'kk'
+    ? ['Microsoft Aigul Online (Natural)', 'Aigul']
+    : ['Microsoft Svetlana Online (Natural)', 'Microsoft Dariya Online (Natural)', 'Google русский', 'Svetlana', 'Dariya'];
+  for(const p of prio){ const v = vs.find(x => x.name.includes(p)); if(v) return v; }
+  const same = vs.filter(isLang);
+  const v = same.find(x => FEMALE.test(x.name)) || same.find(x => !MALE.test(x.name)) || same[0];
+  if(v) return v;
+  return lang === 'kk' ? pickVoice('ru') : null;   // нет казахского — читаем русским голосом
+}
+
+// Готовим текст к произношению: без эмодзи, разметки; сокращения — словами
+function speakify(t, lang){
+  t = String(t).replace(/\p{Extended_Pictographic}|\uFE0F|\u200D/gu, '');
+  if(lang !== 'kk'){
+    t = t.replace(/[МM]\s*:\s*[МM]/g, 'многие ко многим').replace(/1\s*:\s*[МM]/g, 'один ко многим').replace(/1\s*:\s*1/g, 'один к одному')
+         .replace(/1НФ/g, 'первая нормальная форма').replace(/2НФ/g, 'вторая нормальная форма').replace(/3НФ/g, 'третья нормальная форма')
+         .replace(/\bVBA\b/g, 'ви-би-эй').replace(/\bSQL\b/g, 'эс-кью-эль').replace(/\bDAO\b/g, 'дао');
+  }
+  return t.replace(/[\[\]_*#`|∞]/g, ' ').replace(/\s*(→|->|←|↔)\s*/g, ', ').replace(/\s+/g, ' ').replace(/\s+([,.!?:;])/g, '$1').trim();
+}
+function splitSentences(t){ return String(t).split(/(?<=[.!?…])\s+/).filter(s => s.trim()); }
+// Длинное предложение режем по запятым — иначе Chrome может оборвать речь
+function chunk(t, max){
+  max = max || 180; if(t.length <= max) return [t];
+  const out = []; let cur = '';
+  for(const part of t.split(/(?<=[,;:—])\s+/)){
+    if(cur && (cur + ' ' + part).length > max){ out.push(cur); cur = part; } else cur = cur ? cur + ' ' + part : part;
+  }
+  if(cur) out.push(cur); return out;
+}
+// Сегменты для чтения: предложения, а вместо кода и таблиц — короткая фраза
+function buildSegments(root, lang){
+  const segs = []; if(!root) return segs;
+  const codeMsg = lang === 'kk' ? 'Код экранда көрсетілген.' : 'Код приведён на экране.';
+  const tblMsg = lang === 'kk' ? 'Кесте экранда көрсетілген.' : 'Таблица приведена на экране.';
+  root.querySelectorAll('.snt, .code, .tbl').forEach(el => {
+    if(el.closest('.nospeak')) return;
+    const text = el.classList.contains('snt') ? speakify(el.textContent, lang) : el.classList.contains('code') ? codeMsg : tblMsg;
+    if(text) segs.push({el, text});
+  });
+  return segs;
+}
+
+const Speech = {
+  segs:[], i:0, token:0, msg:null, root:null, paused:false, engine:'web', lang:'ru',
+  audio: new Audio(), urls:[], utt:null,
+  active:false,          // сейчас идёт озвучка
+  resumePoint:null,      // где остановились — для команды «продолжи»
+
+  // Озвучить сообщение (или его часть root), начиная с предложения from
+  speak(msg, root, from){
+    this.stop();
+    if(!msg) return;
+    const lang = msg.dataset.lang || 'ru';
+    this.root = root || null;
+    this.run(buildSegments(root || msg.querySelector('.content'), lang), lang, msg, from || 0);
+  },
+  // Озвучить произвольный текст (проверка голоса, короткие ответы на команды)
+  speakText(text, lang){
+    this.stop();
+    this.root = null;
+    this.run(splitSentences(text).map(t => ({el:null, text:speakify(t, lang)})), lang, null, 0);
+  },
+  // Продолжить с того места, где остановились
+  resumeLast(){
+    const p = this.resumePoint;
+    if(p && document.body.contains(p.msg)) this.speak(p.msg, p.root, p.i);
+  },
+  run(segs, lang, msg, from){
+    if(!segs.length || (!hasWebSpeech() && !useCloud())){
+      if(segs.length) toast('Этот браузер не умеет озвучивать текст. Попробуйте Edge или Chrome.');
+      Voice.afterBot(); return;
+    }
+    this.segs = segs; this.i = Math.min(from || 0, segs.length - 1); this.lang = lang; this.msg = msg;
+    this.paused = false; this.active = true; this.resumePoint = null;
+    const tok = ++this.token;
+    if(msg) msg.classList.add('speaking');
+    this.updateBtns();
+    voicesReady.then(() => setTimeout(() => this.step(tok), 60));
+  },
+  step(tok){
+    if(tok !== this.token) return;
+    if(this.i >= this.segs.length) return this.finish(true);
+    const seg = this.segs[this.i];
+    this.mark(seg.el);
+    const done = () => { if(tok !== this.token) return; this.i++; this.step(tok); };
+    if(useCloud()) this.playCloud(seg, tok, done); else this.playWeb(seg.text, tok, done);
+  },
+  // Режим А: speechSynthesis, rate 0.95, pitch 1.05
+  playWeb(text, tok, done){
+    this.engine = 'web';
+    if(!hasWebSpeech()) return done();
+    const parts = chunk(text); let k = 0;
+    const next = () => {
+      if(tok !== this.token) return;
+      if(k >= parts.length) return done();
+      const u = new SpeechSynthesisUtterance(parts[k++]);
+      const v = pickVoice(this.lang);
+      if(v){ u.voice = v; u.lang = v.lang; } else u.lang = this.lang === 'kk' ? 'kk-KZ' : 'ru-RU';
+      u.rate = S.rate; u.pitch = 1.05; u.volume = S.volume;
+      u.onend = next;
+      u.onerror = e => { if(e.error === 'interrupted' || e.error === 'canceled') return; next(); };
+      this.utt = u;                       // держим ссылку, иначе Chrome может «потерять» onend
+      speechSynthesis.speak(u);
+    };
+    next();
+  },
+  // Режим Б: облачный голос; следующий фрагмент загружается заранее
+  async playCloud(seg, tok, done){
+    this.engine = 'cloud';
+    try{
+      const url = await this.fetchSeg(this.i);
+      if(tok !== this.token) return;
+      const nextP = this.fetchSeg(this.i + 1); if(nextP) nextP.catch(() => {});
+      const a = this.audio;
+      a.onended = null; a.onerror = null;
+      a.src = url; a.volume = S.volume; a.playbackRate = S.rate / 0.95;
+      a.onended = () => done();
+      a.onerror = () => { if(tok !== this.token) return; this.cloudFallback('ошибка воспроизведения'); this.playWeb(seg.text, tok, done); };
+      await a.play();
+      if(this.paused) a.pause();
+    }catch(err){
+      if(tok !== this.token) return;
+      this.cloudFallback(err.message);
+      this.playWeb(seg.text, tok, done);   // автоматически возвращаемся к режиму А
+    }
+  },
+  fetchSeg(i){
+    const s = this.segs[i]; if(!s) return null;
+    if(!s.p) s.p = cloudTTS(s.text, this.lang).then(u => { this.urls.push(u); return u; });
+    return s.p;
+  },
+  cloudFallback(msg){
+    if(state.cloudFailed) return;
+    state.cloudFailed = true;
+    toast('Облачный голос недоступен (' + msg + '). Переключаюсь на голос браузера.', 5000);
+  },
+  togglePause(msg){
+    if(!this.msg || (msg && msg !== this.msg)) return;
+    if(this.paused){
+      this.paused = false;
+      if(this.engine === 'cloud') this.audio.play().catch(() => {}); else speechSynthesis.resume();
+    } else {
+      this.paused = true;
+      if(this.engine === 'cloud') this.audio.pause(); else speechSynthesis.pause();
+    }
+    this.updateBtns();
+  },
+  stop(){
+    if(this.active && this.msg) this.resumePoint = {msg:this.msg, root:this.root, i:this.i};
+    this.token++;
+    if(hasWebSpeech()) speechSynthesis.cancel();
+    const a = this.audio; a.onended = null; a.onerror = null; try{ a.pause(); }catch(e){}
+    this.urls.forEach(u => URL.revokeObjectURL(u)); this.urls = [];
+    this.finish(false); this.segs = [];
+  },
+  // natural = true — дочитали до конца (в голосовом диалоге после этого снова слушаем)
+  finish(natural){
+    this.mark(null);
+    if(this.msg) this.msg.classList.remove('speaking');
+    this.msg = null; this.paused = false; this.active = false; this.updateBtns();
+    if(natural){ this.resumePoint = null; Voice.afterBot(); }
+  },
+  mark(el){
+    document.querySelectorAll('.now').forEach(x => x.classList.remove('now'));
+    if(el) el.classList.add('now');
+  },
+  updateBtns(){
+    document.querySelectorAll('.actions [data-a="pause"]').forEach(b => {
+      const active = !!this.msg && b.closest('.msg') === this.msg;
+      b.textContent = active && this.paused ? '⏯' : '⏸';
+      b.classList.toggle('on', active);
+    });
+  }
+};
+
+function cloudKeyPresent(){
+  return (S.cloud === 'azure' && S.azureKey) || (S.cloud === 'yandex' && (S.yaKey || S.yaProxy)) || (S.cloud === 'eleven' && S.elKey);
+}
+function useCloud(){ return S.ttsMode === 'cloud' && !state.cloudFailed && !!cloudKeyPresent(); }
+const xmlEsc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
+
+// Запрос к облачному синтезатору; возвращает blob-URL с mp3
+async function cloudTTS(text, lang){
+  let res;
+  if(S.cloud === 'azure'){
+    // Azure: SSML, голоса ru-RU-SvetlanaNeural / ru-RU-DariyaNeural, kk-KZ-AigulNeural
+    const voice = lang === 'kk' ? 'kk-KZ-AigulNeural' : S.azureVoice;
+    const xmlLang = lang === 'kk' ? 'kk-KZ' : 'ru-RU';
+    const ssml = '<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="' + xmlLang + '">' +
+      '<voice name="' + voice + '"><prosody rate="-5%" pitch="+3%">' + xmlEsc(text) + '</prosody></voice></speak>';
+    res = await fetch('https://' + (S.azureRegion || 'westeurope') + '.tts.speech.microsoft.com/cognitiveservices/v1', {
+      method:'POST',
+      headers:{'Ocp-Apim-Subscription-Key':S.azureKey, 'Content-Type':'application/ssml+xml', 'X-Microsoft-OutputFormat':'audio-24khz-48kbitrate-mono-mp3'},
+      body: ssml
+    });
+  } else if(S.cloud === 'yandex'){
+    // Yandex SpeechKit v1: голос alena, эмоция good. Из браузера нужен прокси (CORS).
+    const voice = lang === 'kk' ? 'amira' : (S.yaVoice || 'alena');
+    const params = {text, lang: lang === 'kk' ? 'kk-KK' : 'ru-RU', voice, format:'mp3', speed:'1.0'};
+    if(voice === 'alena') params.emotion = 'good';
+    res = await fetch(S.yaProxy || 'https://tts.api.cloud.yandex.net/speech/v1/tts:synthesize', {
+      method:'POST', headers: S.yaKey ? {'Authorization':'Api-Key ' + S.yaKey} : {}, body: new URLSearchParams(params)
+    });
+  } else {
+    // ElevenLabs: мультиязычная модель, женский голос по ID
+    res = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + encodeURIComponent(S.elVoice || DEFAULTS.elVoice) + '?output_format=mp3_44100_128', {
+      method:'POST',
+      headers:{'xi-api-key':S.elKey, 'Content-Type':'application/json', 'Accept':'audio/mpeg'},
+      body: JSON.stringify({text, model_id:'eleven_multilingual_v2', voice_settings:{stability:0.5, similarity_boost:0.75}})
+    });
+  }
+  if(!res.ok) throw new Error('HTTP ' + res.status);
+  const blob = await res.blob();
+  if(!blob.size) throw new Error('пустой ответ');
+  return URL.createObjectURL(blob);
+}
+
+/* =====================================================================
+   4.11. ИИ: Anthropic Claude или любой OpenAI-совместимый API
+   ===================================================================== */
+function aiEnabled(){ return S.aiProvider !== 'none' && !!S.aiKey.trim(); }
+
+function historyForAI(){
+  const msgs = [];
+  for(const m of state.hist){
+    if(m.from !== 'user' && m.from !== 'bot') continue;
+    const role = m.from === 'user' ? 'user' : 'assistant';
+    if(msgs.length && msgs[msgs.length - 1].role === role) msgs[msgs.length - 1].content += '\n\n' + m.md;
+    else msgs.push({role, content: m.md});
+  }
+  let last = msgs.slice(-12);
+  while(last.length && last[0].role !== 'user') last.shift();   // диалог должен начинаться с вопроса
+  return last;
+}
+async function askAI(override){
+  const messages = override ? [{role:'user', content: override}] : historyForAI();
+  const system = SYSTEM_PROMPT + (S.lang === 'kk' ? '\nОтвечай на казахском языке.' : '');
+  let r, d;
+  if(S.aiProvider === 'anthropic'){
+    r = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'content-type':'application/json', 'x-api-key':S.aiKey.trim(), 'anthropic-version':'2023-06-01',
+               'anthropic-dangerous-direct-browser-access':'true'},
+      body: JSON.stringify({model: S.aiModel || 'claude-sonnet-5-5', max_tokens: 2000, system, messages})
+    });
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    d = await r.json();
+    return d.content.filter(b => b.type === 'text').map(b => b.text).join('\n');
+  }
+  r = await fetch(S.aiUrl || 'https://api.openai.com/v1/chat/completions', {
+    method:'POST',
+    headers:{'Content-Type':'application/json', 'Authorization':'Bearer ' + S.aiKey.trim()},
+    body: JSON.stringify({model: S.aiModel || 'gpt-4o-mini', temperature: 0.4, messages: [{role:'system', content: system}].concat(messages)})
+  });
+  if(!r.ok) throw new Error('HTTP ' + r.status);
+  d = await r.json();
+  return d.choices[0].message.content;
+}
+
+/* =====================================================================
+   4.12. ЛОГИКА ОТВЕТОВ
+   ===================================================================== */
+const ACCESS_RE = /access|аксес|табли|запрос|форм|отчет|макрос|vba|sql|баз|пол[еяю]|ключ|связ|данн|select|модул|кесте|сұрау|пішін|есеп/;
+const TOPIC_WORD = {tables:/^табли/, queries:/^запро/, forms:/^форм/, reports:/^отче/, macros:/^макро/, vba:/^vba$|^моду/, extra:/^дополн/};
+let busy = false;
+
+// meta: {voice:true, conf} — если фраза сказана голосом
+async function send(text, meta){
+  text = (text || '').trim();
+  if(!text || busy) return;
+  const voice = !!(meta && meta.voice);
+  if(!voice && voiceCommand(text, false)) return;          // короткие команды работают и с клавиатуры
+  // Регистрация на тест: короткая фраза — это фамилия и имя ученика
+  if(state.reg && state.reg.form && !/\?/.test(text) && text.split(/\s+/).length <= 4){
+    const f = state.reg.form, name = voice ? text.replace(/(^|\s)(\S)/g, (m, s, c) => s + c.toUpperCase()) : text;
+    f.elements.student.value = name;
+    return quizBegin(state.reg.kind, name, f.elements.grp.value, f);
+  }
+  Speech.stop();
+  addMsg('user', text, {voice, save: !state.quiz});
+  // Во время теста подсказок нет: ученик отвечает сам, ответ откроется после выбора варианта
+  if(state.quiz){
+    const open = state.quiz.el && !state.quiz.el.dataset.done;
+    return addMsg('bot', open
+      ? 'Сейчас идёт тест 🙂 Выберите вариант: А, Б, В или Г. Правильный ответ и пояснение откроются после вашего выбора.'
+      : 'Тест ещё не закончен — нажмите «Следующий вопрос».', {save:false, chips:[{label:'Прервать тест', act:'quiz-stop'}]});
+  }
+  if(state.mode === 'practice' && state.practice) return checkPractice(text);
+  if(aiEnabled()){
+    busy = true; const typing = showTyping();
+    try{
+      const ans = await askAI();
+      typing.remove(); busy = false;
+      addMsg('bot', ans, {lang: S.lang, src: '🤖 ИИ-ответ'});
+      return;
+    }catch(err){
+      typing.remove(); busy = false;
+      toast('ИИ недоступен (' + err.message + '). Отвечаю из встроенной базы знаний.', 5000);
+    }
+  }
+  answerLocal(text, meta);
+}
+
+function answerLocal(text, meta){
+  const kk = S.lang === 'kk';
+  const n = norm(text);
+  if(/^(привет|здравств|добр(ый|ое)|салем|сәлем|hello|hi)(\s|$)/.test(n))
+    return addMsg('bot', kk ? TXT.greetKk : 'Здравствуйте! 😊 Выберите раздел или задайте вопрос своими словами.', {lang: kk ? 'kk' : 'ru', chips: sectionChips()});
+  if(/спасибо|рахмет|благодар/.test(n))
+    return addMsg('bot', 'Пожалуйста! Рада помочь. Хотите закрепить тему — пройдите тест или практикум.', {chips:[{label:'✅ Тест', act:'quiz'}, {label:'🛠 Практикум', act:'practice'}]});
+  if(/что ты умеешь|что умеешь|помощь|help|как пользоваться/.test(n)) return addMsg('bot', TXT.help, {chips: sectionChips()});
+  if(/^тест$|пройти тест|начать тест|тестирован/.test(n)) return startQuiz();
+  if(/практикум|дай задание|практическ/.test(n)) return startPractice();
+
+  // Один «общий» запрос вроде «запросы» или «формы» — показываем раздел целиком
+  const qs = stemsOf(text).map(correctStem);
+  if(qs.length === 1){ for(const k in TOPIC_WORD) if(TOPIC_WORD[k].test(qs[0])) return showSection(k); }
+
+  const res = search(text);
+  if(res.length && res[0].score >= 2){
+    const e = res[0].e;
+    const related = res.slice(1).filter(r => r.score >= 3 && r.e !== e).slice(0, 3);
+    addMsg('bot', kbMd(e), {
+      src: '📚 ' + TOPICS[e.t].name + ' · база знаний',
+      note: kk ? TXT.kkNote : '',
+      chips: related.map(r => ({label: '➜ ' + r.e.title, ask: r.e.title}))
+    });
+    setActiveNav(e.t);
+    return;
+  }
+  // Голос распознан неуверенно — переспрашиваем
+  if(meta && meta.voice && meta.conf > 0 && meta.conf < 0.5)
+    return addMsg('bot', 'Простите, я не совсем расслышала: «' + text + '». Повторите, пожалуйста, чуть медленнее или другими словами.', {chips: sectionChips()});
+  if(ACCESS_RE.test(n))
+    return addMsg('bot', 'В моей базе нет точного ответа на этот вопрос 🤔 Попробуйте переформулировать или выберите тему из разделов ниже.', {chips: sectionChips()});
+  addMsg('bot', kk ? TXT.offKk : TXT.offRu, {lang: kk ? 'kk' : 'ru', chips: sectionChips()});
+}
+
+function showSection(k){
+  exitPractice(true); abandonQuiz();
+  const T = TOPICS[k];
+  addMsg('bot', '### ' + T.icon + ' ' + T.name + '\n' + T.intro + '\n\nВыберите тему или задайте вопрос своими словами.', {
+    chips: KB.filter(e => e.t === k).map(e => ({label: e.title, ask: e.title}))
+  });
+  setActiveNav(k);
+}
+
+/* =====================================================================
+   4.13. ТЕСТЫ: регистрация по имени → 10 вопросов → правильный ответ
+         открывается только после ответа ученика → итог и журнал результатов
+   ===================================================================== */
+const TESTS = {
+  all: {title:'Общий тест по Microsoft Access', icon:'✅', nav:'quiz', pick: () => shuffle(QUIZ.slice()).slice(0, 10)},
+  tfr: {title:'Тест: таблицы, формы, отчёты (средний уровень)', icon:'📝', nav:'quiz-tfr', pick: () => pickBalanced(QUIZ_TFR, ['tables', 'forms', 'reports'], 10)}
+};
+const TOPIC_NAMES = {tables:'Таблицы', forms:'Формы', reports:'Отчёты'};
+
+// Поровну по темам: 4 + 3 + 3 (какой теме достанется 4 вопроса — случайно)
+function pickBalanced(pool, topics, n){
+  const order = shuffle(topics.slice()), per = {};
+  order.forEach((t, i) => { per[t] = Math.floor(n / topics.length) + (i < n % topics.length ? 1 : 0); });
+  return shuffle(topics.flatMap(t => shuffle(pool.filter(q => q.t === t)).slice(0, per[t])));
+}
+function abandonQuiz(silent){
+  if(state.quiz && !silent) toast('Тест прерван — результат не сохранён', 3000);
+  state.quiz = null; state.reg = null;
+}
+
+// Шаг 1: регистрация — ученик вводит фамилию, имя и группу
+function startQuiz(kind){
+  kind = TESTS[kind] ? kind : 'all';
+  const T = TESTS[kind], st = SS.get('acc_student', {name:'', group:''});
+  Speech.stop(); abandonQuiz(); exitPractice(true); setActiveNav(T.nav);
+  const el = addMsg('bot', '### ' + T.icon + ' ' + T.title + '\nВ тесте 10 вопросов. Правильный ответ и пояснение откроются только после вашего ответа. Введите фамилию и имя — результат попадёт в список «Результаты».', {save:false, src:'Регистрация'});
+  const f = document.createElement('form');
+  f.className = 'reg'; f.autocomplete = 'off';
+  f.innerHTML =
+    '<label>Фамилия и имя<input name="student" required maxlength="60" placeholder="Например: Ахметова Айгерим" value="' + esc(st.name) + '"></label>' +
+    '<label>Группа<input name="grp" maxlength="20" placeholder="ИС-21" value="' + esc(st.group) + '"></label>' +
+    '<button class="btn" type="submit">▶ Начать тест</button>';
+  el.querySelector('.bubble').insertBefore(f, el.querySelector('.actions'));
+  f.addEventListener('submit', e => { e.preventDefault(); quizBegin(kind, f.elements.student.value, f.elements.grp.value, f); });
+  state.reg = {kind, form: f};
+  if(!st.name) setTimeout(() => f.elements.student.focus(), 60);
+}
+// Шаг 2: вопросы по одному
+function quizBegin(kind, name, group, form){
+  name = String(name || '').replace(/\s+/g, ' ').trim();
+  group = String(group || '').replace(/\s+/g, ' ').trim().toUpperCase();
+  if(name.length < 2){ toast('Введите фамилию и имя'); if(form) form.elements.student.focus(); return; }
+  SS.set('acc_student', {name, group});
+  if(form) form.querySelectorAll('input, button').forEach(x => { x.disabled = true; });
+  const T = TESTS[kind];
+  const qs = T.pick().map(x => {
+    const order = shuffle(x.o.map((_, i) => i));       // варианты тоже перемешиваем
+    return {q:x.q, o:order.map(i => x.o[i]), a:order.indexOf(x.a), e:x.e, t:x.t || ''};
+  });
+  state.reg = null;
+  state.quiz = {kind, title:T.title, qs, n:0, ans:[], ok:0, el:null, student:{name, group}};
+  addMsg('bot', 'Удачи, **' + name + '**! Выбирайте один вариант ответа.', {save:false, speak:false});
+  quizQuestion();
+}
+function quizQuestion(){
+  const z = state.quiz, it = z.qs[z.n];
+  const el = botShell('ru');
+  el.querySelector('.content').innerHTML =
+    '<div class="q-head">' + (it.t ? '<span class="q-topic">' + TOPIC_NAMES[it.t] + '</span>' : '') +
+    'Вопрос ' + (z.n + 1) + ' из ' + z.qs.length +
+    '<span class="q-bar"><i style="width:' + (z.n / z.qs.length * 100) + '%"></i></span>' +
+    '<span class="q-score">Верно: ' + z.ok + ' из ' + z.n + '</span></div>' +
+    '<p class="q-text"><span class="snt">' + esc(it.q) + '</span></p>' +
+    it.o.map((t, i) => '<button type="button" class="q-opt" data-qopt="' + i + '"><b>' + 'АБВГ'[i] + '</b><span class="snt">' + esc(t) + '</span></button>').join('') +
+    '<div class="q-expl" hidden></div>';
+  el.querySelector('.bubble').insertAdjacentHTML('beforeend', actionsHtml('Тест · ' + z.student.name));
+  chat.appendChild(el); scrollToMsg(el);
+  z.el = el;
+  if(S.voiceOn) Speech.speak(el); else Voice.afterBot();
+}
+// Ответ ученика: только теперь показываем, какой вариант правильный
+function quizAnswer(btn){
+  const z = state.quiz; if(!z) return;
+  const el = btn.closest('.msg'); if(el !== z.el || el.dataset.done) return;
+  el.dataset.done = '1';
+  const it = z.qs[z.n], pick = +btn.dataset.qopt, right = pick === it.a;
+  z.ans.push(pick); if(right) z.ok++;
+  el.querySelectorAll('.q-opt').forEach((b, k) => {
+    b.disabled = true;
+    if(k === it.a) b.classList.add('right'); else if(k === pick) b.classList.add('wrong');
+  });
+  el.querySelector('.q-score').textContent = 'Верно: ' + z.ok + ' из ' + (z.n + 1);
+  const ex = el.querySelector('.q-expl'); ex.hidden = false;
+  ex.innerHTML = '<p><span class="snt">' + (right ? '✅ Верно!' : '❌ Неверно.') + '</span> <span class="snt">' + esc(it.e) + '</span></p>' +
+    '<p class="q-count">Правильных ответов: <b>' + z.ok + ' из ' + (z.n + 1) + '</b></p>' +
+    '<button type="button" class="btn" data-act="quiz-next">' + (z.n + 1 < z.qs.length ? 'Следующий вопрос →' : 'Показать результат') + '</button>';
+  if(S.voiceOn) Speech.speak(el, ex); else Voice.afterBot();
+}
+function quizNext(){
+  const z = state.quiz; if(!z || !z.el || !z.el.dataset.done) return;
+  z.n++;
+  if(z.n < z.qs.length) return quizQuestion();
+  quizFinish();
+}
+// Шаг 3: итог — количество правильных ответов, оценка, разбор ошибок, запись в журнал
+function quizFinish(){
+  const z = state.quiz; state.quiz = null;
+  const total = z.qs.length, ok = z.ok, pct = Math.round(ok / total * 100);
+  const grade = pct >= 90 ? 5 : pct >= 70 ? 4 : pct >= 50 ? 3 : 2;
+  const byTopic = {};
+  z.qs.forEach((q, i) => {
+    if(!q.t) return;
+    const b = byTopic[q.t] = byTopic[q.t] || [0, 0];
+    b[1]++; if(z.ans[i] === q.a) b[0]++;
+  });
+  const topics = Object.keys(byTopic).map(t => TOPIC_NAMES[t] + ' ' + byTopic[t][0] + '/' + byTopic[t][1]).join(', ');
+  const wrong = [];
+  z.qs.forEach((q, i) => { if(z.ans[i] !== q.a) wrong.push('- **' + q.q + '** Ваш ответ: «' + q.o[z.ans[i]] + '». Правильно: «' + q.o[q.a] + '». ' + q.e); });
+  saveResult({name:z.student.name, group:z.student.group, kind:z.kind, test:z.title, ok, total, pct, grade, topics, date:new Date().toISOString()});
+  let text = '### 🏁 Результат: ' + z.student.name + (z.student.group ? ', ' + z.student.group : '') +
+    '\nПравильных ответов: **' + ok + ' из ' + total + '** (' + pct + '%). Оценка: **' + grade + '**.\n';
+  if(topics) text += '\nПо темам: ' + topics + '.\n';
+  text += wrong.length ? '\n### Разбор ошибок\n' + wrong.join('\n') : '\n> Блестяще! Ни одной ошибки.';
+  text += '\n\n> Результат записан в список «📋 Результаты».';
+  addMsg('bot', text, {src:'Тест · ' + z.student.name, chips:[
+    {label:'🔁 Пройти ещё раз', act: z.kind === 'tfr' ? 'quiz-tfr' : 'quiz'}, {label:'📋 Список результатов', act:'results'}]});
+}
+
+/* --- Журнал результатов: хранится в этом браузере на этом компьютере --- */
+function loadResults(){ const r = LS.get('acc_results', []); return Array.isArray(r) ? r : []; }
+function saveResult(r){ const all = loadResults(); all.push(r); LS.set('acc_results', all.slice(-1000)); }
+function fmtDate(iso){
+  const d = new Date(iso), p = n => String(n).padStart(2, '0');
+  return p(d.getDate()) + '.' + p(d.getMonth() + 1) + '.' + d.getFullYear() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+function resultsTable(list, sort){
+  const rows = list.slice();
+  if(sort === 'score') rows.sort((a, b) => b.pct - a.pct || b.ok - a.ok || String(a.date).localeCompare(String(b.date)));
+  else rows.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  return '<div class="tbl"><table class="res"><thead><tr><th>№</th><th>Ученик</th><th>Группа</th><th>Тест</th><th>Верно</th><th>%</th><th>Оценка</th><th>Дата</th></tr></thead><tbody>' +
+    rows.map((r, i) => '<tr><td>' + (i + 1) + '</td><td>' + esc(r.name) + '</td><td>' + esc(r.group || '—') + '</td><td>' +
+      (r.kind === 'tfr' ? 'Таблицы, формы, отчёты' : 'Общий') + '</td><td><b>' + (+r.ok) + ' из ' + (+r.total) + '</b></td><td>' + (+r.pct) +
+      '%</td><td class="g' + (+r.grade) + '">' + (+r.grade) + '</td><td>' + fmtDate(r.date) + '</td></tr>').join('') +
+    '</tbody></table></div>';
+}
+function showResults(){
+  Speech.stop(); abandonQuiz(); exitPractice(true); setActiveNav('results');
+  const list = loadResults();
+  if(!list.length) return addMsg('bot', '### 📋 Результаты тестов\nПока никто не проходил тест на этом компьютере.', {save:false,
+    chips:[{label:'📝 Тест: таблицы, формы, отчёты', act:'quiz-tfr'}, {label:'✅ Общий тест', act:'quiz'}]});
+  const avg = Math.round(list.reduce((s, r) => s + (+r.pct || 0), 0) / list.length);
+  const people = new Set(list.map(r => String(r.name).toLowerCase())).size;
+  const el = addMsg('bot', '### 📋 Результаты тестов\nРеспондентов: **' + people + '**, попыток: **' + list.length + '**, средний результат: **' + avg + '%**.', {save:false, src:'Журнал результатов'});
+  const box = document.createElement('div');
+  box.innerHTML = '<div class="res-tools"><button type="button" class="chip on" data-sort="date">Сначала новые</button>' +
+    '<button type="button" class="chip" data-sort="score">По баллам</button><span class="grow"></span>' +
+    '<button type="button" class="btn-light" data-act="results-csv">⬇️ Скачать для Excel</button>' +
+    '<button type="button" class="btn-light" data-act="results-clear">🗑 Очистить</button></div>' +
+    '<div class="res-wrap">' + resultsTable(list, 'date') + '</div>';
+  box.addEventListener('click', e => {
+    const b = e.target.closest('[data-sort]'); if(!b) return;
+    box.querySelectorAll('[data-sort]').forEach(x => x.classList.toggle('on', x === b));
+    box.querySelector('.res-wrap').innerHTML = resultsTable(loadResults(), b.dataset.sort);
+  });
+  el.querySelector('.content').appendChild(box);
+}
+// CSV через точку с запятой и с BOM — открывается в русском Excel без «кракозябр»
+function resultsCsv(list){
+  const q = v => { let s = String(v == null ? '' : v); if(/^[=+\-@]/.test(s)) s = "'" + s; return '"' + s.replace(/"/g, '""') + '"'; };
+  return '﻿' + [['Дата', 'Ученик', 'Группа', 'Тест', 'Правильных', 'Всего', 'Процент', 'Оценка', 'По темам']]
+    .concat(list.map(r => [fmtDate(r.date), r.name, r.group, r.test, r.ok, r.total, r.pct, r.grade, r.topics]))
+    .map(row => row.map(q).join(';')).join('\r\n');
+}
+function exportResults(){
+  const list = loadResults(); if(!list.length) return toast('Список результатов пуст');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([resultsCsv(list)], {type:'text/csv;charset=utf-8'}));
+  a.download = 'Результаты тестов Access.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+}
+function clearResults(){
+  if(!confirm('Удалить все результаты тестов на этом компьютере?')) return;
+  LS.del('acc_results'); toast('Список результатов очищен', 2000); showResults();
+}
+
+/* =====================================================================
+   4.14. ПРАКТИКУМ: задание → решение студента → проверка по критериям
+   ===================================================================== */
+// Эталон открывается только после того, как ученик отправил своё решение
+function practiceChips(withRef){
+  return (withRef ? [{label:'📗 Показать эталон', act:'practice-ref'}] : [])
+    .concat([{label:'🔄 Другое задание', act:'practice'}, {label:'Выйти из практикума', act:'practice-exit'}]);
+}
+function startPractice(n){
+  Speech.stop(); abandonQuiz(); setActiveNav('practice');
+  if(n == null){
+    do{ n = Math.floor(Math.random() * PRACTICE.length); }
+    while(PRACTICE.length > 1 && state.practice && n === state.practice.n);
+  }
+  state.mode = 'practice'; state.practice = {n, tries:0};
+  const p = PRACTICE[n];
+  addMsg('bot', '### 🛠 Практикум: ' + p.title + '\n**Задание.** ' + p.task + '\n\n> Опишите решение своими словами — шаги в Access или код — и отправьте. Я проверю, а эталон откроется после вашей попытки.', {chips: practiceChips(false)});
+  updateModeBar(); input.focus();
+}
+async function checkPractice(text){
+  const p = PRACTICE[state.practice.n];
+  state.practice.tries++;
+  const t = text.replace(/ё/g, 'е').replace(/Ё/g, 'Е');
+  const res = p.checks.map(c => ({c, ok: c.r.test(t)}));
+  const k = res.filter(r => r.ok).length, total = res.length;
+  const grade = k === total ? 5 : k >= total - 1 ? 4 : k >= Math.ceil(total / 2) ? 3 : 2;
+  let out = '### Проверка решения\nВыполнено критериев: **' + k + ' из ' + total + '**. Оценка: **' + grade + '**.\n' +
+    res.map(r => (r.ok ? '- ✅ ' : '- ❌ ') + r.c.l + (r.ok ? '' : ' — ' + r.c.h)).join('\n');
+  let src = 'Практикум · автопроверка';
+  if(aiEnabled()){                                      // с ключом ИИ — подробный разбор
+    busy = true; const typing = showTyping();
+    try{
+      const ai = await askAI('Ты проверяешь практическое задание по Microsoft Access.\nЗадание: ' + p.task +
+        '\nЭталонное решение:\n' + p.ref + '\nРешение студента:\n' + text +
+        '\nОцени по 5-балльной шкале, кратко перечисли, что сделано верно и что упущено, дай один совет.');
+      out = '### Проверка решения\n' + ai + '\n\nАвтопроверка по критериям: **' + k + ' из ' + total + '**.';
+      src = 'Практикум · ИИ';
+    }catch(e){ /* остаёмся на автопроверке */ }
+    typing.remove(); busy = false;
+  }
+  out += k === total ? '\n\n> Отлично! Все ключевые шаги на месте.' : '\n\n> Дополните решение и отправьте ещё раз — или нажмите «Показать эталон».';
+  addMsg('bot', out, {src, chips: practiceChips(true)});
+}
+function exitPractice(silent){
+  if(state.mode !== 'practice') return;
+  state.mode = 'chat'; updateModeBar();
+  if(!silent) addMsg('bot', 'Вы вышли из практикума. Задавайте любые вопросы по Access!', {chips: sectionChips()});
+}
+function updateModeBar(){ $('#modeBar').hidden = state.mode !== 'practice'; }
+
+/* =====================================================================
+   4.15. ИНТЕРФЕЙС: меню, подсказки, кнопки, микрофон, настройки
+   ===================================================================== */
+function buildNav(){
+  const nav = $('#nav');
+  const items = Object.keys(TOPICS).map(k => ({key:k, icon:TOPICS[k].icon, name:TOPICS[k].name}))
+    .concat([{key:'quiz-tfr', icon:'📝', name:'Тест: таблицы, формы, отчёты'}, {key:'quiz', icon:'✅', name:'Общий тест'},
+             {key:'practice', icon:'🛠', name:'Практикум'}, {key:'results', icon:'📋', name:'Результаты'}]);
+  nav.innerHTML = items.map(it => '<button type="button" class="nav-btn" data-sec="' + it.key + '"><span class="ic">' + it.icon + '</span>' + it.name + '</button>').join('');
+  nav.addEventListener('click', e => {
+    const b = e.target.closest('[data-sec]'); if(!b) return;
+    const k = b.dataset.sec;
+    if(k === 'quiz') startQuiz('all'); else if(k === 'quiz-tfr') startQuiz('tfr'); else if(k === 'results') showResults();
+    else if(k === 'practice') startPractice(); else showSection(k);
+  });
+}
+function setActiveNav(k){ document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.sec === k)); }
+
+function buildQuick(){
+  const q = [['📝 Тест: таблицы, формы, отчёты', 'quiz-tfr', 'hot'], ['🎙 Поговорить голосом', 'voice-dialog'], ['Как создать связь М:М?'], ['Запрос с параметром'],
+    ['Пример VBA'], ['Итоговый запрос'], ['Нормализация'], ['DLookup'], ['Подчинённая форма'], ['✅ Общий тест', 'quiz'], ['📋 Результаты', 'results']];
+  $('#quick').innerHTML = q.map(([l, act, cls]) => '<button type="button" class="chip' + (cls ? ' ' + cls : '') + '" ' +
+    (act ? 'data-act="' + act + '"' : 'data-ask="' + esc(l) + '"') + '>' + esc(l) + '</button>').join('');
+}
+
+function doAct(act){
+  if(act === 'quiz') return startQuiz('all');
+  if(act === 'quiz-tfr') return startQuiz('tfr');
+  if(act === 'quiz-next') return quizNext();
+  if(act === 'quiz-stop'){
+    abandonQuiz(true);
+    return addMsg('bot', 'Тест прерван, результат не сохранён. Начать заново можно в любой момент.', {save:false,
+      chips:[{label:'📝 Тест: таблицы, формы, отчёты', act:'quiz-tfr'}, {label:'✅ Общий тест', act:'quiz'}]});
+  }
+  if(act === 'results') return showResults();
+  if(act === 'results-csv') return exportResults();
+  if(act === 'results-clear') return clearResults();
+  if(act === 'practice') return startPractice();
+  if(act === 'practice-exit') return exitPractice(false);
+  if(act === 'practice-ref' && state.practice){
+    if(!state.practice.tries) return toast('Сначала отправьте своё решение — эталон откроется после проверки.', 3500);
+    return addMsg('bot', '### 📗 Эталонное решение\n' + PRACTICE[state.practice.n].ref, {chips: practiceChips(true)});
+  }
+  if(act === 'voice-dialog'){ if(!SR) return Voice.unsupported(); Voice.setDialog(true); return Voice.start(); }
+  if(act === 'voice-help') return addMsg('bot', TXT.voiceHelp, {save:false});
+  if(act.startsWith('sec:')) return showSection(act.slice(4));
+}
+
+// Один обработчик кликов на всю страницу (кнопки в чате, чипсы, подсказки)
+document.addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  if(b.hasAttribute('data-copy')){
+    copyText(b.closest('.code').querySelector('pre').textContent).then(() => {
+      b.textContent = '✅ Скопировано'; setTimeout(() => { b.textContent = '📋 Копировать'; }, 1500);
+    });
+    return;
+  }
+  if(b.dataset.qopt !== undefined) return quizAnswer(b);
+  const msg = b.closest('.msg');
+  if(b.dataset.a === 'play') return Speech.speak(msg);
+  if(b.dataset.a === 'pause') return Speech.togglePause(msg);
+  if(b.dataset.a === 'stop') return Speech.stop();
+  if(b.dataset.ask){ exitPractice(true); abandonQuiz(); return send(b.dataset.ask); }
+  if(b.dataset.act) return doAct(b.dataset.act);
+});
+
+// Ввод: Enter — отправить, Shift+Enter — новая строка
+function autoGrow(){ input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 140) + 'px'; }
+function submitInput(){ if(Voice.listening) Voice.cancel(); const t = input.value; input.value = ''; autoGrow(); send(t); }
+$('#form').addEventListener('submit', e => { e.preventDefault(); submitInput(); });
+input.addEventListener('keydown', e => { if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); submitInput(); } });
+input.addEventListener('input', autoGrow);
+$('#btnExitPractice').addEventListener('click', () => exitPractice(false));
+
+/* =====================================================================
+   4.16. ГОЛОС: микрофон, понимание речи, голосовые команды, голосовой диалог
+   ===================================================================== */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+const Voice = {
+  rec:null, listening:false, dialog:false, misses:0, heard:'', alts:[], conf:0, err:'', timer:null,
+
+  // Включить микрофон и выслушать одну фразу
+  start(){
+    if(!SR) return this.unsupported();
+    if(this.listening) return;
+    clearTimeout(this.timer);
+    Speech.stop();                                   // пока бот говорит, не слушаем — иначе услышим сами себя
+    let rec;
+    try{ rec = new SR(); }catch(e){ return this.fail('start'); }
+    rec.lang = S.lang === 'kk' ? 'kk-KZ' : 'ru-RU';
+    rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 3;
+    this.rec = rec; this.heard = ''; this.alts = []; this.conf = 0; this.err = '';
+    rec.onresult = e => {
+      let fin = '', interim = ''; const finals = [];
+      for(let i = 0; i < e.results.length; i++){
+        const r = e.results[i];
+        if(r.isFinal){ fin += r[0].transcript; finals.push(r); } else interim += r[0].transcript;
+      }
+      this.heard = fin.trim();
+      if(finals.length === 1){                         // несколько вариантов распознавания — выберем лучший
+        this.alts = Array.from(finals[0]).map(a => a.transcript.trim()).filter(Boolean);
+        this.conf = finals[0][0].confidence || 0;
+      } else if(finals.length){ this.alts = [this.heard]; this.conf = 0; }
+      this.render((fin + ' ' + interim).trim());
+    };
+    rec.onerror = e => { this.err = e.error; };
+    rec.onend = () => {
+      this.listening = false; this.rec = null;
+      const text = this.err === 'aborted' ? '' : this.heard;
+      this.render();
+      if(text){ this.misses = 0; return handleVoice(this.alts.length ? this.alts : [text], this.conf); }
+      if(this.err === 'aborted') return;
+      if(this.err && this.err !== 'no-speech') return this.fail(this.err);
+      // тишина: в диалоге пробуем ещё пару раз, потом выключаемся
+      if(this.dialog && ++this.misses <= 2){ this.timer = setTimeout(() => this.start(), 300); return; }
+      if(this.dialog){ this.setDialog(false); toast('Не слышу вас — голосовой диалог выключен. Нажмите 🎤, когда будете готовы.', 5000); }
+      else toast('Не слышно речи — нажмите 🎤 и попробуйте ещё раз.', 3500);
+    };
+    try{ rec.start(); this.listening = true; this.render(); }
+    catch(e){ this.rec = null; this.fail('start'); }
+  },
+  stop(){ if(this.rec) this.rec.stop(); },                          // закончить и обработать сказанное
+  cancel(){ if(this.rec){ this.err = 'aborted'; this.rec.abort(); } },  // отменить без обработки
+  toggle(){ if(this.listening) this.stop(); else this.start(); },
+  setDialog(on){
+    this.dialog = !!on; this.misses = 0; clearTimeout(this.timer);
+    if(!on && this.listening) this.cancel();
+    this.render();
+  },
+  // Бот закончил говорить: в режиме диалога снова включаем микрофон
+  afterBot(){
+    if(!this.dialog || this.listening) return;
+    clearTimeout(this.timer);
+    this.timer = setTimeout(() => {
+      if(this.dialog && !this.listening && !Speech.active && !busy && !dlg.open) this.start();
+    }, 450);
+  },
+  render(live){
+    $('#voiceBar').hidden = !this.listening && !this.dialog;
+    $('#voiceBar').classList.toggle('listening', this.listening);
+    $('#vbDialog').checked = this.dialog;
+    $('#vbText').innerHTML = this.listening
+      ? (live ? '🎙 ' + esc(live) : '🎙 Слушаю… говорите <i>(«стоп», «повтори», «открой запросы», «ответ Б»)</i>')
+      : '🎧 Голосовой диалог: после ответа я снова включу микрофон';
+    $('#vbCancel').textContent = this.listening ? 'Отмена' : 'Выключить';
+    const btn = $('#btnMic');
+    btn.classList.toggle('rec', this.listening);
+    btn.title = this.listening ? 'Остановить запись' : 'Голосовой ввод (Ctrl+M)';
+  },
+  fail(code){
+    const fileHint = location.protocol === 'file:' ? ' Удобнее запускать бота через «Запустить.bat» — тогда браузер запомнит разрешение.' : '';
+    const m = {
+      'not-allowed': 'Браузер не дал доступ к микрофону. Нажмите значок 🔒 или 🎤 слева в адресной строке → «Микрофон: разрешить» и обновите страницу.' + fileHint,
+      'service-not-allowed': 'Распознавание речи запрещено в этом браузере. Откройте бота в Google Chrome или Microsoft Edge.',
+      'audio-capture': 'Микрофон не найден. Проверьте, что он подключён и включён в Windows (Параметры → Конфиденциальность → Микрофон).',
+      'network': 'Сервис распознавания речи недоступен. Нужен интернет, а во встроенных окнах-превью распознавание не работает — откройте бота в Google Chrome или Microsoft Edge.',
+      'language-not-supported': 'Этот язык не поддерживается распознаванием. Переключитесь на RU.',
+      'start': 'Не удалось включить микрофон. Попробуйте ещё раз.'
+    };
+    this.setDialog(false);
+    addMsg('bot', '🎤 ' + (m[code] || ('Ошибка микрофона: ' + code)), {speak:false, save:false});
+  },
+  unsupported(){
+    this.setDialog(false);
+    addMsg('bot', '🎤 Этот браузер не умеет распознавать речь. Откройте бота в **Google Chrome** или **Microsoft Edge** (компьютер, Android) либо в Safari на iPhone.', {speak:false, save:false});
+  }
+};
+
+// Понимание фразы: сначала команды и ответы в тесте, затем лучший из вариантов распознавания
+function handleVoice(alts, conf){
+  const fixed = alts.map(fixSpeech).filter(Boolean);
+  if(!fixed.length) return;
+  for(const t of fixed){ if(voiceCommand(t, true)) return; }
+  let best = fixed[0];
+  if(fixed.length > 1 && state.mode !== 'practice' && !state.reg && !state.quiz){
+    let bs = -1;
+    fixed.forEach(t => { const r = search(t); const sc = r.length ? r[0].score : 0; if(sc > bs){ bs = sc; best = t; } });
+  }
+  send(best.charAt(0).toUpperCase() + best.slice(1), {voice:true, conf});
+}
+
+// Вариант ответа в тесте: «Б», «ответ Б», «второй» или текст самого варианта
+const OPT_WORDS = [
+  /^(а|a|первый|первое|первая|один|1)$/, /^(б|бэ|бе|b|второй|второе|вторая|два|2)$/,
+  /^(в|вэ|ве|v|третий|третье|третья|три|3)$/, /^(г|гэ|ге|g|четвертый|четвертое|четвертая|четыре|4)$/
+];
+function optionIndex(t, q){
+  const s = t.split(' ').filter(w => !/^(мой|правильный|я|думаю|наверное|наверно|пусть|будет|выбираю|ответ|вариант|буква|это)$/.test(w)).join(' ');
+  for(let i = 0; i < 4; i++) if(OPT_WORDS[i].test(s)) return i;
+  if(!s || s.split(' ').length > 6) return -1;
+  const b = stemsOf(s); if(!b.length) return -1;
+  const sc = q.o.map(opt => { const a = stemsOf(opt); return a.length ? b.filter(x => a.some(y => stemMatch(x, y))).length / b.length : 0; });
+  const max = Math.max(...sc);
+  return max >= 0.6 && sc.filter(v => v === max).length === 1 ? sc.indexOf(max) : -1;
+}
+
+// Голосовые (и короткие текстовые) команды. Возвращает true, если команда выполнена.
+function voiceCommand(raw, isVoice){
+  const t = String(raw).toLowerCase().replace(/ё/g, 'е').replace(/[^\p{L}\p{N}\s]+/gu, ' ').replace(/\s+/g, ' ').trim();
+  if(!t || t.split(' ').length > 8) return false;
+  const say = msg => toast((isVoice ? '🎤 ' : '') + msg, 2400);
+  const ok = msg => { say(msg); if(S.voiceOn) Speech.speakText(S.lang === 'kk' ? 'Жақсы.' : 'Хорошо.', S.lang); else Voice.afterBot(); };
+  const z = state.quiz;
+
+  // Тест: ответ и переход дальше
+  if(z && z.el && !z.el.dataset.done){
+    const i = optionIndex(t, z.qs[z.n]);
+    if(i >= 0){ say('Ответ ' + 'АБВГ'[i]); quizAnswer(z.el.querySelectorAll('.q-opt')[i]); return true; }
+  }
+  if(z && z.el && z.el.dataset.done && /^(дальше|далее|следующ\S*( вопрос\S*)?|продолж\S*|давай дальше|поехали|некст|next|келесі|келеси|результат\S*|покажи результат)$/.test(t)){ quizNext(); return true; }
+  if(z && /^(прервать|прерви|останови|закончи|выйти из) тест\S*$/.test(t)){ doAct('quiz-stop'); return true; }
+
+  // Чтение вслух
+  if(/^(стоп|хватит|замолчи|молчи|тихо|остановись|достаточно|прекрати|тоқта|токта)( пожалуйста)?$/.test(t)){ Speech.stop(); say('Остановила'); Voice.afterBot(); return true; }
+  if(/^(пауза|подожди|погоди)$/.test(t)){ if(Speech.msg && !Speech.paused) Speech.togglePause(Speech.msg); else Speech.stop(); say('Пауза. Скажите «продолжи»'); return true; }
+  if(/^(продолж\S*|читай дальше|дальше читай)$/.test(t) && (Speech.paused || Speech.resumePoint)){
+    if(Speech.paused) Speech.togglePause(Speech.msg); else Speech.resumeLast();
+    say('Продолжаю'); return true;
+  }
+  if(/^(повтори\S*|еще раз|прочитай (снова|еще раз)|не понял\S*|не расслышал\S*|қайтала|кайтала)( пожалуйста| еще раз)?$/.test(t)){
+    const last = [...chat.querySelectorAll('.msg.bot')].pop();
+    if(last){ say('Повторяю'); Speech.speak(last); }
+    return true;
+  }
+  // Громкость и скорость голоса
+  if(/^(громче|погромче|қаттырақ)$/.test(t)){ S.volume = Math.min(1, Math.round((S.volume + 0.2) * 100) / 100); saveSettings(); ok('Громкость ' + Math.round(S.volume * 100) + '%'); return true; }
+  if(/^(тише|потише|ақырынырақ)$/.test(t)){ S.volume = Math.max(0.2, Math.round((S.volume - 0.2) * 100) / 100); saveSettings(); ok('Громкость ' + Math.round(S.volume * 100) + '%'); return true; }
+  if(/^(говори )?(быстрее|побыстрее)$/.test(t)){ S.rate = Math.min(1.4, Math.round((S.rate + 0.1) * 100) / 100); saveSettings(); ok('Скорость ' + S.rate); return true; }
+  if(/^(говори )?(медленнее|помедленнее)$/.test(t)){ S.rate = Math.max(0.6, Math.round((S.rate - 0.1) * 100) / 100); saveSettings(); ok('Скорость ' + S.rate); return true; }
+  if(/^(выключи|отключи) (голос|озвучку|звук)$/.test(t)){ S.voiceOn = false; saveSettings(); updateVoiceBtn(); Speech.stop(); say('Озвучка выключена'); Voice.afterBot(); return true; }
+  if(/^включи (голос|озвучку|звук)$/.test(t)){ S.voiceOn = true; saveSettings(); updateVoiceBtn(); ok('Озвучка включена'); return true; }
+  // Язык
+  if(/^((говори|отвечай|переключись|давай)( на)? )?(по казахски|на казахском|казахский|қазақша|казакша)$/.test(t)){ setLang('kk'); ok('Тіл: қазақша'); return true; }
+  if(/^((говори|отвечай|переключись|давай)( на)? )?(по русски|на русском|русский|орысша)$/.test(t)){ setLang('ru'); ok('Язык: русский'); return true; }
+  // Голосовой диалог
+  if(/^(выключи (микрофон|диалог)|закончим|закончить|конец( диалога)?|пока|до свидания|хватит слушать|не слушай)$/.test(t)){
+    Voice.setDialog(false); Speech.stop(); say('Голосовой диалог выключен');
+    if(S.voiceOn && isVoice) Speech.speakText(S.lang === 'kk' ? 'Сау болыңыз!' : 'Хорошо. Если понадоблюсь — нажмите микрофон.', S.lang);
+    return true;
+  }
+  if(/^(включи диалог|давай поговорим|поговорим|слушай меня)$/.test(t)){ Voice.setDialog(true); ok('Голосовой диалог включён'); return true; }
+  // Тесты, результаты, практикум, разделы
+  if(/^((начни|начать|запусти|пройти|пройдем|давай|открой|хочу)( пройти)? )?тест\S* (по |на )?\S*(таблиц|форм|отчет)/.test(t)){ startQuiz('tfr'); return true; }
+  if(/^((начни|начать|запусти|пройти|пройдем|давай|открой|хочу)( пройти)? )?(общий )?тест\S*$/.test(t)){ startQuiz('all'); return true; }
+  if(/^((покажи|открой) )?(результаты|список результатов|журнал|рейтинг|баллы|список баллов)$/.test(t)){ showResults(); return true; }
+  if(state.mode === 'practice'){
+    if(/^(покажи )?(эталон|правильный ответ|решение)$/.test(t)){ doAct('practice-ref'); return true; }
+    if(/^(выйти|выйди|выход|закрыть)( из практикума)?$/.test(t)){ exitPractice(false); return true; }
+    if(/^(другое|новое|следующее) задание$/.test(t)){ startPractice(); return true; }
+  }
+  if(/^((открой|начни|давай|хочу) )?практикум$|^дай (мне )?задание$/.test(t)){ startPractice(); return true; }
+  const sec = t.match(/^(открой|покажи|перейди в|перейди|давай)( раздел)? (\S+)$/);
+  if(sec){ const st = stem(sec[3]); for(const k in TOPIC_WORD) if(TOPIC_WORD[k].test(st)){ showSection(k); return true; } }
+  if(/^(какие (есть )?команды|голосовые команды|что можно сказать|команды)$/.test(t)){ doAct('voice-help'); return true; }
+  return false;
+}
+
+$('#btnMic').addEventListener('click', () => Voice.toggle());
+$('#vbCancel').addEventListener('click', () => { if(Voice.listening) Voice.cancel(); else Voice.setDialog(false); });
+$('#vbDialog').addEventListener('change', e => {
+  Voice.setDialog(e.target.checked);
+  if(e.target.checked && !Voice.listening && !Speech.active) Voice.start();
+});
+document.addEventListener('keydown', e => { if(e.ctrlKey && e.code === 'KeyM'){ e.preventDefault(); Voice.toggle(); } });
+
+// Озвучка вкл/выкл и язык
+function updateVoiceBtn(){ $('#btnVoice').textContent = S.voiceOn ? '🔊' : '🔇'; $('#btnVoice').title = S.voiceOn ? 'Озвучка включена' : 'Озвучка выключена'; }
+$('#btnVoice').addEventListener('click', () => {
+  S.voiceOn = !S.voiceOn; saveSettings(); updateVoiceBtn();
+  if(!S.voiceOn) Speech.stop();
+  toast(S.voiceOn ? 'Озвучка включена' : 'Озвучка выключена', 1800);
+});
+function applyLangUI(){
+  const kk = S.lang === 'kk';
+  $('#btnLang').textContent = kk ? 'ҚАЗ' : 'RU';
+  input.placeholder = kk ? TXT.phKk : TXT.phRu;
+  document.documentElement.lang = kk ? 'kk' : 'ru';
+}
+function setLang(l){ S.lang = l; saveSettings(); applyLangUI(); }
+$('#btnLang').addEventListener('click', () => {
+  setLang(S.lang === 'kk' ? 'ru' : 'kk');
+  toast(S.lang === 'kk' ? 'Тіл: қазақша. Толық қазақша жауаптар үшін ИИ кілтін қосыңыз.' : 'Язык: русский', 3500);
+});
+
+/* --- Окно настроек --- */
+const dlg = $('#dlg');
+function fillVoiceSelect(){
+  const sel = $('#sVoiceName'); if(!sel) return;
+  const vs = voices().filter(v => /^(ru|kk)/i.test(v.lang)).sort((a, b) => a.lang.localeCompare(b.lang) || a.name.localeCompare(b.name));
+  sel.innerHTML = '<option value="">Авто — лучший женский голос</option>' +
+    vs.map(v => '<option value="' + esc(v.name) + '">' + esc(v.name) + ' (' + v.lang + ')' + (v.localService ? '' : ' · онлайн') + '</option>').join('') +
+    (vs.length ? '' : '<option disabled>Русские голоса не найдены — установите их в Windows: Параметры → Время и язык → Речь</option>');
+  sel.value = S.voiceName;
+}
+function syncDlgVisibility(){
+  $('#cloudBox').hidden = $('#sTtsMode').value !== 'cloud';
+  document.querySelectorAll('[data-cloud]').forEach(d => { d.hidden = d.dataset.cloud !== $('#sCloud').value; });
+  const prov = $('#sAiProvider').value;
+  $('#aiBox').hidden = prov === 'none';
+  $('#aiUrlRow').hidden = prov !== 'openai';
+  $('#sAiModel').placeholder = prov === 'anthropic' ? 'claude-sonnet-5-5' : 'gpt-4o-mini';
+  $('#vRate').textContent = (+$('#sRate').value).toFixed(2);
+  $('#vVol').textContent = Math.round($('#sVolume').value * 100) + '%';
+}
+const FIELDS = {sVoiceOn:'voiceOn', sTtsMode:'ttsMode', sVoiceName:'voiceName', sRate:'rate', sVolume:'volume', sCloud:'cloud',
+  sAzureKey:'azureKey', sAzureRegion:'azureRegion', sAzureVoice:'azureVoice', sYaKey:'yaKey', sYaVoice:'yaVoice', sYaProxy:'yaProxy',
+  sElKey:'elKey', sElVoice:'elVoice', sAiProvider:'aiProvider', sAiKey:'aiKey', sAiModel:'aiModel', sAiUrl:'aiUrl'};
+function openSettings(){
+  fillVoiceSelect();
+  for(const id in FIELDS){ const el = $('#' + id); if(el.type === 'checkbox') el.checked = !!S[FIELDS[id]]; else el.value = S[FIELDS[id]]; }
+  syncDlgVisibility(); dlg.returnValue = ''; dlg.showModal();
+}
+function readSettings(){
+  for(const id in FIELDS){
+    const el = $('#' + id), key = FIELDS[id];
+    S[key] = el.type === 'checkbox' ? el.checked : el.type === 'range' ? +el.value : el.value.trim();
+  }
+  saveSettings(); state.cloudFailed = false; updateVoiceBtn();
+}
+$('#btnSettings').addEventListener('click', openSettings);
+dlg.addEventListener('input', syncDlgVisibility);
+dlg.addEventListener('close', () => { if(dlg.returnValue === 'save'){ readSettings(); toast('Настройки сохранены', 1800); } });
+$('#btnTestVoice').addEventListener('click', () => {
+  readSettings();
+  Speech.speakText(S.lang === 'kk' ? 'Сәлеметсіз бе! Менің дауысым осылай естіледі.' : 'Здравствуйте! Так звучит мой голос. Начнём изучать Microsoft Access?', S.lang);
+});
+$('#btnClear').addEventListener('click', () => {
+  Speech.stop(); state.hist = []; SS.del('acc_hist'); chat.innerHTML = ''; state.quiz = null; exitPractice(true);
+  dlg.close(); welcome(); toast('История очищена', 1800);
+});
+
+/* --- Приветствие голосом при первом действии на странице
+       (браузеры не дают включать звук до действия пользователя) --- */
+function welcome(){
+  const kk = S.lang === 'kk';
+  addMsg('bot', kk ? TXT.greetKk : TXT.greetRu, {lang: kk ? 'kk' : 'ru', speak:false, note: TXT.greetNote, chips: sectionChips()});
+}
+function firstGesture(){
+  document.removeEventListener('pointerdown', firstGesture, true);
+  document.removeEventListener('keydown', firstGesture, true);
+  if(SS.get('acc_greeted', false)) return;
+  SS.set('acc_greeted', true);
+  if(!S.voiceOn || dlg.open) return;
+  const first = chat.querySelector('.msg.bot');
+  if(first) Speech.speak(first);
+}
+
+/* --- Запуск --- */
+function init(){
+  $('#hdrAva').innerHTML = AVATAR;
+  buildNav(); buildQuick(); applyLangUI(); updateVoiceBtn();
+  if(state.hist.length){
+    state.hist.forEach(m => addMsg(m.from, m.md, {lang:m.lang, chips:m.chips, src:m.src, note:m.note, voice:m.voice, speak:false, save:false}));
+  } else welcome();
+  voicesReady.then(fillVoiceSelect);
+  document.addEventListener('pointerdown', firstGesture, true);
+  document.addEventListener('keydown', firstGesture, true);
+}
+init();
+</script>
+</body>
+</html>
