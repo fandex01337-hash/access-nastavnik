@@ -199,6 +199,64 @@ button{font:inherit}
 .grp.rolling ol{opacity:.5}
 .rand-note{font-size:12.5px;color:var(--muted);margin:8px 0 0}
 
+/* графика баллов: полоска ответов во время теста и круговая диаграмма в итоге */
+.q-dots{display:flex;gap:4px;width:100%;margin-top:6px}
+.q-dots i{flex:1;height:8px;border-radius:4px;background:#e3e9f3}
+.q-dots i.cur{background:#9db8ea}
+.q-dots i.ok{background:var(--ok)}
+.q-dots i.no{background:var(--bad)}
+.score-viz{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin:8px 0 10px}
+.donut{width:150px;height:150px;flex:none}
+.donut-arc{animation:donutIn 1s ease-out}
+@keyframes donutIn{from{stroke-dasharray:0 400}}
+.donut-big{font:700 28px "Segoe UI",Arial,sans-serif;fill:var(--text)}
+.donut-small{font:600 15px "Segoe UI",Arial,sans-serif;fill:var(--muted)}
+.score-grade{font-size:22px;font-weight:700;margin-bottom:8px}
+.score-marks{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+.score-marks span{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-size:13px;font-weight:700;color:#fff}
+.score-marks .ok,.score-legend .ok{background:var(--ok)}
+.score-marks .no,.score-legend .no{background:var(--bad)}
+.score-legend{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.score-legend span{width:12px;height:12px;border-radius:3px;display:inline-block}
+.score-legend .no{margin-left:8px}
+
+/* викторина «Соответствие» */
+.match-reg{display:grid;grid-template-columns:1fr 150px;gap:10px;margin:12px 0 6px}
+.match-reg label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+.match-reg input{padding:8px 10px;border:1px solid #c9d4e6;border-radius:10px;font:inherit;color:var(--text);background:#fff}
+.match-reg input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,86,219,.12)}
+.match-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0 12px}
+.match-prog{font-weight:600;color:var(--blue-d)}
+.match-bar button:disabled{opacity:.5;cursor:default}
+.match-board{position:relative;display:grid;grid-template-columns:minmax(0,38fr) minmax(0,62fr);column-gap:60px;align-items:start}
+.match-lines{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.match-col{display:flex;flex-direction:column;gap:8px;position:relative;z-index:1}
+.m-item{display:flex;gap:10px;align-items:center;text-align:left;width:100%;padding:10px 12px;border:2px solid var(--line);border-radius:12px;
+  background:#fff;color:var(--text);cursor:grab;touch-action:pan-y;user-select:none;-webkit-user-select:none;transition:border-color .15s,box-shadow .15s,background .15s}
+.m-item b{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--blue-l);color:var(--blue-d);font-size:13px}
+.m-item span{flex:1;min-width:0}
+.m-term{font-weight:600;min-height:52px}
+.m-def{font-size:14px;line-height:1.35;min-height:52px}
+.m-item:hover{border-color:#9db8ea}
+.m-item.sel{border-color:var(--blue);box-shadow:0 0 0 4px rgba(26,86,219,.18)}
+.m-item.paired{border-color:var(--pc)}
+.m-item.paired b{background:var(--pc);color:#fff}
+.m-item.right{border-color:var(--ok);background:#ecfdf3}
+.m-item.right b{background:var(--ok);color:#fff}
+.m-item.wrong{border-color:var(--bad);background:#fdeeee}
+.m-item.wrong b{background:var(--bad);color:#fff}
+.m-tag{flex:none;font-style:normal;font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap}
+.match-board.locked .m-item{cursor:default}
+.match-result{margin-top:12px;padding-top:4px;border-top:1px dashed var(--line)}
+@media (max-width:600px){
+  .match-reg{grid-template-columns:1fr}
+  .match-board{column-gap:24px}
+  .m-item{padding:8px;gap:6px}
+  .m-item b{width:22px;height:22px;font-size:12px}
+  .m-def{font-size:13px}
+  .donut{width:120px;height:120px}
+}
+
 /* кнопки общего вида */
 .btn{background:var(--blue);color:#fff;border:0;border-radius:10px;padding:9px 16px;cursor:pointer}
 .btn:hover{background:var(--blue-d)}
@@ -1481,8 +1539,8 @@ const TXT = {
   kkNote:'ℹ️ Кіріктірілген білім базасы орыс тілінде. Қазақша толық жауап алу үшін баптауларда ИИ кілтін қосыңыз.',
   phRu:'Задайте вопрос по Access… (Enter — отправить)',
   phKk:'Access бойынша сұрақ қойыңыз… (Enter — жіберу)',
-  help:'### Что я умею\n- Объясняю все объекты Access: **таблицы, запросы, формы, отчёты, макросы, VBA**.\n- Показываю SQL и VBA с кнопкой «Копировать».\n- Даю мини-задания, провожу **тест** из 10 вопросов и **практикум** с проверкой решения.\n- Читаю ответы вслух и понимаю речь: вопросы и команды голосом (🎤, «🎙 Поговорить голосом»).\n- Веду список результатов тестов (📋 Результаты) с выгрузкой в Excel.\n- Случайно делю студентов на группы (🎲 Группы).\n- С ключом ИИ в настройках отвечаю на любые вопросы по Access, в том числе на казахском.',
-  voiceHelp:'### 🎙 Голосовые команды\n- «Стоп», «повтори», «продолжи» — управление чтением\n- «Громче», «тише», «быстрее», «медленнее»\n- «Открой запросы», «начни тест», «тест по таблицам, формам и отчётам», «дай задание»\n- В тесте: «ответ Б» или «второй», затем «дальше»\n- «Покажи результаты» — список баллов\n- «Раздели на группы» — случайные группы студентов\n- «Говори по-казахски», «говори по-русски»\n- «Выключи микрофон» — закончить голосовой диалог\n\nВопросы задавайте обычными словами, например: «Как сделать запрос с параметром?»'
+  help:'### Что я умею\n- Объясняю все объекты Access: **таблицы, запросы, формы, отчёты, макросы, VBA**.\n- Показываю SQL и VBA с кнопкой «Копировать».\n- Даю мини-задания, провожу **тест** из 10 вопросов и **практикум** с проверкой решения.\n- Читаю ответы вслух и понимаю речь: вопросы и команды голосом (🎤, «🎙 Поговорить голосом»).\n- Веду список результатов тестов (📋 Результаты) с выгрузкой в Excel.\n- Случайно делю студентов на группы (🎲 Группы).\n- Лёгкий тест по СУБД с тремя вариантами и графикой баллов (🟢), викторина на соответствие терминов (🧩).\n- С ключом ИИ в настройках отвечаю на любые вопросы по Access, в том числе на казахском.',
+  voiceHelp:'### 🎙 Голосовые команды\n- «Стоп», «повтори», «продолжи» — управление чтением\n- «Громче», «тише», «быстрее», «медленнее»\n- «Открой запросы», «начни тест», «тест по таблицам, формам и отчётам», «дай задание»\n- В тесте: «ответ Б» или «второй», затем «дальше»\n- «Покажи результаты» — список баллов\n- «Раздели на группы» — случайные группы студентов\n- «Лёгкий тест», «викторина» — тест по СУБД и задание на соответствие\n- «Говори по-казахски», «говори по-русски»\n- «Выключи микрофон» — закончить голосовой диалог\n\nВопросы задавайте обычными словами, например: «Как сделать запрос с параметром?»'
 };
 
 // Фото преподавателя — встроено прямо в файл (base64), чтобы бот оставался одним файлом
@@ -1541,6 +1599,23 @@ const QUIZ_TFR = [
   {t:'reports', q:'Как открыть отчёт «Ведомость» только для группы, выбранной в поле со списком cboГруппа?', o:['DoCmd.OpenReport "Ведомость", acViewPreview, , "КодГруппы=" & Me.cboГруппа','DoCmd.OpenForm "Ведомость"','Изменить «Источник строк» отчёта','Включить каскадное обновление связи'], a:0, e:'Четвёртый аргумент OpenReport — условие отбора записей.'},
   {t:'reports', q:'В каком разделе отчёта разместить общий итог, который печатается один раз в конце?', o:['Примечание отчёта','Нижний колонтитул','Примечание группы','Заголовок группы'], a:0, e:'Примечание отчёта выводится один раз после всех данных, а колонтитулы — на каждой странице.'},
   {t:'reports', q:'Как сохранить готовый отчёт в PDF средствами Access?', o:['Открыть предварительный просмотр и нажать «PDF или XPS»','Файл → Сведения → Сжать и восстановить','Внешние данные → Экспорт → Excel','Файл → Сохранить как → ACCDE'], a:0, e:'Кнопка «PDF или XPS» есть в предварительном просмотре и на вкладке «Внешние данные».'}
+];
+
+/* Лёгкий тест по СУБД: 3 варианта ответа, в каждом прохождении 10 вопросов из 12.
+   Поле a — номер правильного варианта (здесь всегда 0, при показе варианты перемешиваются). */
+const QUIZ_EASY = [
+  {q:'Что такое СУБД?', o:['Программа для создания баз данных и работы с ними','Текстовый редактор','Антивирусная программа'], a:0, e:'СУБД — система управления базами данных, например Microsoft Access.'},
+  {q:'Как называется строка таблицы?', o:['Запись','Поле','Ключ'], a:0, e:'Строка таблицы — запись: сведения об одном объекте, например об одном студенте.'},
+  {q:'Как называется столбец таблицы?', o:['Поле','Запись','Отчёт'], a:0, e:'Столбец — поле: одно свойство объекта, например «Фамилия».'},
+  {q:'Какой объект Access хранит данные?', o:['Таблица','Отчёт','Макрос'], a:0, e:'Все данные базы хранятся в таблицах.'},
+  {q:'Какой объект Access нужен, чтобы распечатать данные?', o:['Отчёт','Запрос','Таблица'], a:0, e:'Отчёт готовит данные к печати.'},
+  {q:'Какой объект Access удобен для ввода данных?', o:['Форма','Отчёт','Модуль'], a:0, e:'Форма — удобное окно для ввода и просмотра записей.'},
+  {q:'Что однозначно определяет каждую запись таблицы?', o:['Первичный ключ','Подпись поля','Формат поля'], a:0, e:'Значения первичного ключа не повторяются.'},
+  {q:'Какой объект отбирает данные по условию?', o:['Запрос','Форма','Макрос'], a:0, e:'Запрос показывает только записи, которые подходят под условие.'},
+  {q:'Какое расширение у файла базы данных Access?', o:['.accdb','.docx','.xlsx'], a:0, e:'Файлы Access имеют расширение .accdb.'},
+  {q:'Какой тип данных подходит для поля «Дата рождения»?', o:['Дата и время','Логический','Денежный'], a:0, e:'Для дат используют тип «Дата и время».'},
+  {q:'Как называется язык запросов к базам данных?', o:['SQL','HTML','CSS'], a:0, e:'SQL — язык структурированных запросов.'},
+  {q:'Что делает тип данных «Счётчик»?', o:['Нумерует записи автоматически','Считает сумму чисел','Хранит длинный текст'], a:0, e:'Счётчик сам присваивает каждой новой записи следующий номер.'}
 ];
 
 /* ---------- 4.4. Практикум: задания, критерии проверки (регулярные выражения) и эталон ---------- */
@@ -1932,6 +2007,7 @@ function showTyping(){
 function sectionChips(){
   return Object.keys(TOPICS).map(k => ({label: TOPICS[k].icon + ' ' + TOPICS[k].name, act: 'sec:' + k}))
     .concat([{label:'📝 Тест: таблицы, формы, отчёты', act:'quiz-tfr'}, {label:'✅ Общий тест', act:'quiz'},
+             {label:'🟢 Лёгкий тест', act:'quiz-easy'}, {label:'🧩 Соответствие', act:'match'},
              {label:'🛠 Практикум', act:'practice'}, {label:'🎲 Группы', act:'groups'}, {label:'📋 Результаты', act:'results'}]);
 }
 
@@ -2313,7 +2389,8 @@ function showSection(k){
    ===================================================================== */
 const TESTS = {
   all: {title:'Общий тест по Microsoft Access', icon:'✅', nav:'quiz', pick: () => shuffle(QUIZ.slice()).slice(0, 10)},
-  tfr: {title:'Тест: таблицы, формы, отчёты (средний уровень)', icon:'📝', nav:'quiz-tfr', pick: () => pickBalanced(QUIZ_TFR, ['tables', 'forms', 'reports'], 10)}
+  tfr: {title:'Тест: таблицы, формы, отчёты (средний уровень)', icon:'📝', nav:'quiz-tfr', pick: () => pickBalanced(QUIZ_TFR, ['tables', 'forms', 'reports'], 10)},
+  easy: {title:'Лёгкий тест по СУБД (3 варианта ответа)', icon:'🟢', nav:'quiz-easy', pick: () => shuffle(QUIZ_EASY.slice()).slice(0, 10)}
 };
 const TOPIC_NAMES = {tables:'Таблицы', forms:'Формы', reports:'Отчёты'};
 
@@ -2369,7 +2446,9 @@ function quizQuestion(){
     '<div class="q-head">' + (it.t ? '<span class="q-topic">' + TOPIC_NAMES[it.t] + '</span>' : '') +
     'Вопрос ' + (z.n + 1) + ' из ' + z.qs.length +
     '<span class="q-bar"><i style="width:' + (z.n / z.qs.length * 100) + '%"></i></span>' +
-    '<span class="q-score">Верно: ' + z.ok + ' из ' + z.n + '</span></div>' +
+    '<span class="q-score">Верно: ' + z.ok + ' из ' + z.n + '</span>' +
+    // графика счёта: ячейка на каждый вопрос — зелёная (верно), красная (неверно), голубая (текущий)
+    '<span class="q-dots">' + z.qs.map((q, k) => '<i class="' + (k < z.n ? (z.ans[k] === q.a ? 'ok' : 'no') : k === z.n ? 'cur' : '') + '"></i>').join('') + '</span></div>' +
     '<p class="q-text"><span class="snt">' + esc(it.q) + '</span></p>' +
     // по просьбе преподавателя правильный вариант заканчивается точкой
     it.o.map((t, i) => '<button type="button" class="q-opt" data-qopt="' + i + '"><b>' + 'АБВГ'[i] + '</b><span class="snt">' + esc(t) +
@@ -2392,6 +2471,7 @@ function quizAnswer(btn){
     if(k === it.a) b.classList.add('right'); else if(k === pick) b.classList.add('wrong');
   });
   el.querySelector('.q-score').textContent = 'Верно: ' + z.ok + ' из ' + (z.n + 1);
+  el.querySelectorAll('.q-dots i')[z.n].className = right ? 'ok' : 'no';
   const ex = el.querySelector('.q-expl'); ex.hidden = false;
   ex.innerHTML = '<p><span class="snt">' + (right ? '✅ Верно!' : '❌ Неверно.') + '</span> <span class="snt">' + esc(it.e) + '</span></p>' +
     '<p class="q-count">Правильных ответов: <b>' + z.ok + ' из ' + (z.n + 1) + '</b></p>' +
@@ -2424,8 +2504,23 @@ function quizFinish(){
   if(topics) text += '\nПо темам: ' + topics + '.\n';
   text += wrong.length ? '\n### Разбор ошибок\n' + wrong.join('\n') : '\n> Блестяще! Ни одной ошибки.';
   text += '\n\n> Результат записан в список «📋 Результаты».';
-  addMsg('bot', text, {src:'Тест · ' + z.student.name, chips:[
-    {label:'🔁 Пройти ещё раз', act: z.kind === 'tfr' ? 'quiz-tfr' : 'quiz'}, {label:'📋 Список результатов', act:'results'}]});
+  const el = addMsg('bot', text, {src:'Тест · ' + z.student.name, chips:[
+    {label:'🔁 Пройти ещё раз', act: z.kind === 'all' ? 'quiz' : 'quiz-' + z.kind}, {label:'📋 Список результатов', act:'results'}]});
+  el.querySelector('.content h4').insertAdjacentHTML('afterend', scoreChart(ok, total, grade, z.qs.map((q, i) => z.ans[i] === q.a)));
+}
+// Графический итог: круговая диаграмма «X из N» и плитки по каждому вопросу
+function scoreChart(ok, total, grade, marks){
+  const pct = Math.round(ok / total * 100), r = 54, c = 2 * Math.PI * r;
+  const col = {5:'#15803d', 4:'#1a56db', 3:'#b45309', 2:'#c62828'}[grade];
+  return '<div class="score-viz"><svg viewBox="0 0 150 150" class="donut" role="img" aria-label="Правильных ' + ok + ' из ' + total + '">' +
+    '<circle cx="75" cy="75" r="' + r + '" fill="none" stroke="#e6edf8" stroke-width="16"/>' +
+    (ok ? '<circle class="donut-arc" cx="75" cy="75" r="' + r + '" fill="none" stroke="' + col + '" stroke-width="16" stroke-linecap="round" stroke-dasharray="' +
+      (c * ok / total).toFixed(1) + ' ' + c.toFixed(1) + '" transform="rotate(-90 75 75)"/>' : '') +
+    '<text x="75" y="76" text-anchor="middle" class="donut-big">' + ok + '/' + total + '</text>' +
+    '<text x="75" y="100" text-anchor="middle" class="donut-small">' + pct + '%</text></svg>' +
+    '<div><div class="score-grade" style="color:' + col + '">Оценка ' + grade + '</div>' +
+    (marks ? '<div class="score-marks">' + marks.map((m, i) => '<span class="' + (m ? 'ok' : 'no') + '" title="Вопрос ' + (i + 1) + (m ? ': верно' : ': неверно') + '">' + (i + 1) + '</span>').join('') + '</div>' : '') +
+    '<div class="score-legend"><span class="ok"></span>верно<span class="no"></span>неверно</div></div></div>';
 }
 
 /* --- Журнал результатов: хранится в этом браузере на этом компьютере --- */
@@ -2441,7 +2536,7 @@ function resultsTable(list, sort){
   else rows.sort((a, b) => String(b.date).localeCompare(String(a.date)));
   return '<div class="tbl"><table class="res"><thead><tr><th>№</th><th>Ученик</th><th>Группа</th><th>Тест</th><th>Верно</th><th>%</th><th>Оценка</th><th>Дата</th></tr></thead><tbody>' +
     rows.map((r, i) => '<tr><td>' + (i + 1) + '</td><td>' + esc(r.name) + '</td><td>' + esc(r.group || '—') + '</td><td>' +
-      (r.kind === 'tfr' ? 'Таблицы, формы, отчёты' : 'Общий') + '</td><td><b>' + (+r.ok) + ' из ' + (+r.total) + '</b></td><td>' + (+r.pct) +
+      ({tfr:'Таблицы, формы, отчёты', easy:'Лёгкий (СУБД)', match:'Соответствие (СУБД)'}[r.kind] || 'Общий') + '</td><td><b>' + (+r.ok) + ' из ' + (+r.total) + '</b></td><td>' + (+r.pct) +
       '%</td><td class="g' + (+r.grade) + '">' + (+r.grade) + '</td><td>' + fmtDate(r.date) + '</td></tr>').join('') +
     '</tbody></table></div>';
 }
@@ -2542,21 +2637,23 @@ function updateModeBar(){ $('#modeBar').hidden = state.mode !== 'practice'; }
 function buildNav(){
   const nav = $('#nav');
   const items = Object.keys(TOPICS).map(k => ({key:k, icon:TOPICS[k].icon, name:TOPICS[k].name}))
-    .concat([{key:'quiz-tfr', icon:'📝', name:'Тест: таблицы, формы, отчёты'}, {key:'quiz', icon:'✅', name:'Общий тест'},
+    .concat([{key:'quiz-tfr', icon:'📝', name:'Тест: таблицы, формы, отчёты'}, {key:'quiz-easy', icon:'🟢', name:'Лёгкий тест (СУБД)'},
+             {key:'match', icon:'🧩', name:'Соответствие (СУБД)'}, {key:'quiz', icon:'✅', name:'Общий тест'},
              {key:'practice', icon:'🛠', name:'Практикум'}, {key:'groups', icon:'🎲', name:'Группы (рандомайзер)'},
              {key:'results', icon:'📋', name:'Результаты'}]);
   nav.innerHTML = items.map(it => '<button type="button" class="nav-btn" data-sec="' + it.key + '"><span class="ic">' + it.icon + '</span>' + it.name + '</button>').join('');
   nav.addEventListener('click', e => {
     const b = e.target.closest('[data-sec]'); if(!b) return;
     const k = b.dataset.sec;
-    if(k === 'quiz') startQuiz('all'); else if(k === 'quiz-tfr') startQuiz('tfr'); else if(k === 'results') showResults();
+    if(k === 'quiz') startQuiz('all'); else if(k === 'quiz-tfr') startQuiz('tfr'); else if(k === 'quiz-easy') startQuiz('easy');
+    else if(k === 'match') startMatch(); else if(k === 'results') showResults();
     else if(k === 'practice') startPractice(); else if(k === 'groups') showRandomizer(); else showSection(k);
   });
 }
 function setActiveNav(k){ document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.sec === k)); }
 
 function buildQuick(){
-  const q = [['📝 Тест: таблицы, формы, отчёты', 'quiz-tfr', 'hot'], ['🎙 Поговорить голосом', 'voice-dialog'], ['🎲 Разделить на группы', 'groups'],['Как создать связь М:М?'], ['Запрос с параметром'],
+  const q = [['🟢 Лёгкий тест (СУБД)', 'quiz-easy', 'hot'], ['🧩 Соответствие', 'match', 'hot'], ['📝 Тест: таблицы, формы, отчёты', 'quiz-tfr', 'hot'],['🎙 Поговорить голосом', 'voice-dialog'], ['🎲 Разделить на группы', 'groups'],['Как создать связь М:М?'], ['Запрос с параметром'],
     ['Пример VBA'], ['Итоговый запрос'], ['Нормализация'], ['DLookup'], ['Подчинённая форма'], ['✅ Общий тест', 'quiz'], ['📋 Результаты', 'results']];
   $('#quick').innerHTML = q.map(([l, act, cls]) => '<button type="button" class="chip' + (cls ? ' ' + cls : '') + '" ' +
     (act ? 'data-act="' + act + '"' : 'data-ask="' + esc(l) + '"') + '>' + esc(l) + '</button>').join('');
@@ -2565,6 +2662,8 @@ function buildQuick(){
 function doAct(act){
   if(act === 'quiz') return startQuiz('all');
   if(act === 'quiz-tfr') return startQuiz('tfr');
+  if(act === 'quiz-easy') return startQuiz('easy');
+  if(act === 'match') return startMatch();
   if(act === 'quiz-next') return quizNext();
   if(act === 'quiz-stop'){
     abandonQuiz(true);
@@ -2792,6 +2891,8 @@ function voiceCommand(raw, isVoice){
   if(/^((открой|начни|давай|хочу) )?практикум$|^дай (мне )?задание$/.test(t)){ startPractice(); return true; }
   const sec = t.match(/^(открой|покажи|перейди в|перейди|давай)( раздел)? (\S+)$/);
   if(sec){ const st = stem(sec[3]); for(const k in TOPIC_WORD) if(TOPIC_WORD[k].test(st)){ showSection(k); return true; } }
+  if(/^((начни|открой|давай|хочу) )?(л[её]гкий тест|простой тест)$/.test(t)){ startQuiz('easy'); return true; }
+  if(/^((начни|открой|давай|хочу) )?(соответствие|викторин\S*|задание на соответствие)$/.test(t)){ startMatch(); return true; }
   if(/^(рандомайзер|группы|случайные группы|(раздели|разделить|подели|поделить)( студентов)?( на группы)?)$/.test(t)){ showRandomizer(/^(раздели|подели)/.test(t)); return true; }
   if(/^(какие (есть )?команды|голосовые команды|что можно сказать|команды)$/.test(t)){ doAct('voice-help'); return true; }
   return false;
@@ -2972,6 +3073,181 @@ function showRandomizer(autoGo){
     else if(r === 'reset'){ ta.value = DEFAULT_STUDENTS.join('\n'); LS.set('acc_students', DEFAULT_STUDENTS.slice()); count(); }
   });
   if(autoGo) go();
+}
+
+/* =====================================================================
+   4.18. ВИКТОРИНА «СООТВЕТСТВИЕ»: 7 терминов СУБД и их определения
+   ===================================================================== */
+const MATCH_POOL = [
+  {t:'База данных', d:'Организованная совокупность связанных данных, которые хранятся вместе'},
+  {t:'СУБД', d:'Программа для создания баз данных, хранения данных и работы с ними'},
+  {t:'Таблица', d:'Объект, который хранит данные в виде строк и столбцов'},
+  {t:'Запись', d:'Строка таблицы — сведения об одном объекте, например об одном студенте'},
+  {t:'Поле', d:'Столбец таблицы — одно свойство объекта, например «Фамилия»'},
+  {t:'Первичный ключ', d:'Поле, значение которого однозначно определяет каждую запись таблицы'},
+  {t:'Внешний ключ', d:'Поле, которое ссылается на ключ другой таблицы и связывает таблицы'},
+  {t:'Запрос', d:'Объект для отбора, вычисления и изменения данных по условиям'},
+  {t:'Форма', d:'Объект для удобного ввода и просмотра данных на экране'},
+  {t:'Отчёт', d:'Объект для вывода данных на печать с группировкой и итогами'},
+  {t:'Макрос', d:'Набор готовых команд для автоматизации действий без программирования'},
+  {t:'Модуль VBA', d:'Программа на языке Visual Basic для сложной автоматизации'},
+  {t:'Нормализация', d:'Разбиение данных на несколько таблиц, чтобы убрать повторы и противоречия'},
+  {t:'Индекс', d:'Вспомогательная структура, которая ускоряет поиск и сортировку записей'},
+  {t:'Ссылочная целостность', d:'Правило, которое не даёт появиться записям со ссылкой на несуществующие данные'},
+  {t:'SQL', d:'Язык структурированных запросов к базе данных'}
+];
+const MATCH_COLORS = ['#1a56db', '#15803d', '#c2410c', '#7c3aed', '#0e7490', '#be185d', '#a16207'];
+const MATCH_LET = 'АБВГДЕЖ';
+
+function startMatch(){
+  Speech.stop(); abandonQuiz(); exitPractice(true); setActiveNav('match');
+  const items = fairShuffle(MATCH_POOL.slice()).slice(0, 7);
+  const defOrder = fairShuffle(items.map((_, i) => i));   // defOrder[j] — номер термина, чьё определение стоит на месте j
+  const st = SS.get('acc_student', {name:'', group:''});
+  const el = addMsg('bot', '### 🧩 Соответствие: термины СУБД\nСоедините каждый термин с его определением: перетащите термин к определению или нажмите сначала термин, потом определение. Нажатие на соединённую пару разъединяет её. Когда будут готовы все 7 пар, нажмите «Проверить».', {save:false, src:'Викторина'});
+  const w = document.createElement('div'); w.className = 'match';
+  w.innerHTML =
+    '<div class="match-reg"><label>Фамилия и имя<input name="student" maxlength="60" placeholder="Например: Ахметова Айгерим" value="' + esc(st.name) + '"></label>' +
+    '<label>Группа<input name="grp" maxlength="20" placeholder="ИС-21" value="' + esc(st.group) + '"></label></div>' +
+    '<div class="match-bar"><span class="match-prog"></span><span class="grow"></span>' +
+    '<button type="button" class="btn-light" data-m="reset">↺ Сбросить</button><button type="button" class="btn" data-m="check" disabled>✔ Проверить</button></div>' +
+    '<div class="match-board"><svg class="match-lines" aria-hidden="true"></svg>' +
+    '<div class="match-col">' + items.map((it, i) => '<button type="button" class="m-item m-term" data-t="' + i + '"><b>' + (i + 1) + '</b><span>' + esc(it.t) + '</span><i class="m-tag"></i></button>').join('') + '</div>' +
+    '<div class="match-col">' + defOrder.map((ti, j) => '<button type="button" class="m-item m-def" data-d="' + j + '"><b>' + MATCH_LET[j] + '</b><span>' + esc(items[ti].d) + '</span><i class="m-tag"></i></button>').join('') + '</div></div>' +
+    '<div class="match-result" hidden></div>';
+  el.querySelector('.content').appendChild(w);
+
+  const board = w.querySelector('.match-board'), svg = w.querySelector('.match-lines');
+  const terms = [...w.querySelectorAll('.m-term')], defs = [...w.querySelectorAll('.m-def')];
+  const pairs = new Map();                             // номер термина → номер определения
+  let sel = null, checked = false, showAnswers = false, drag = null, suppress = false;
+  const termOf = j => { for(const [i, d] of pairs) if(d === j) return i; return -1; };
+  const right = i => pairs.has(i) && defOrder[pairs.get(i)] === i;
+
+  // Линии: от правого края термина к левому краю определения (координаты внутри поля)
+  const anchor = (node, side) => {
+    const r = node.getBoundingClientRect(), b = board.getBoundingClientRect();
+    return {x: (side === 'r' ? r.right : r.left) - b.left, y: r.top + r.height / 2 - b.top};
+  };
+  const curve = (a, c) => {
+    const dx = Math.max(24, Math.abs(c.x - a.x) / 2);
+    return 'M' + a.x + ' ' + a.y + ' C' + (a.x + dx) + ' ' + a.y + ' ' + (c.x - dx) + ' ' + c.y + ' ' + c.x + ' ' + c.y;
+  };
+  const path = (d, color, extra) => '<path d="' + d + '" stroke="' + color + '" stroke-width="3" fill="none" stroke-linecap="round"' + (extra || '') + '/>';
+  function draw(temp){
+    const b = board.getBoundingClientRect();
+    svg.setAttribute('viewBox', '0 0 ' + b.width + ' ' + b.height);
+    let html = '';
+    for(const [i, j] of pairs){
+      const color = checked ? (right(i) ? '#15803d' : '#c62828') : MATCH_COLORS[i];
+      html += path(curve(anchor(terms[i], 'r'), anchor(defs[j], 'l')), color, checked && !right(i) ? ' stroke-dasharray="7 6"' : '');
+    }
+    if(showAnswers) terms.forEach((t, i) => {
+      if(!right(i)) html += path(curve(anchor(t, 'r'), anchor(defs[defOrder.indexOf(i)], 'l')), '#15803d', ' opacity=".9"');
+    });
+    if(temp) html += path(curve(temp.a, temp.b), '#7c9ad6', ' stroke-dasharray="5 6"');
+    svg.innerHTML = html;
+  }
+  function update(){
+    terms.forEach((t, i) => {
+      const j = pairs.get(i);
+      t.style.setProperty('--pc', MATCH_COLORS[i]);
+      t.classList.toggle('paired', j !== undefined);
+      t.classList.toggle('sel', !!sel && sel.type === 't' && sel.idx === i);
+      t.querySelector('.m-tag').textContent = showAnswers && !right(i) ? 'верно: ' + MATCH_LET[defOrder.indexOf(i)] : j !== undefined ? '→ ' + MATCH_LET[j] : '';
+    });
+    defs.forEach((d, j) => {
+      const i = termOf(j);
+      if(i >= 0) d.style.setProperty('--pc', MATCH_COLORS[i]);
+      d.classList.toggle('paired', i >= 0);
+      d.classList.toggle('sel', !!sel && sel.type === 'd' && sel.idx === j);
+      d.querySelector('.m-tag').textContent = i >= 0 ? '← ' + (i + 1) : '';
+    });
+    w.querySelector('.match-prog').textContent = checked ? 'Проверено' : 'Соединено: ' + pairs.size + ' из ' + items.length;
+    w.querySelector('[data-m="check"]').disabled = checked || pairs.size < items.length;
+    w.querySelector('[data-m="reset"]').disabled = checked;
+    draw();
+  }
+  function link(i, j){
+    const old = termOf(j); if(old >= 0) pairs.delete(old);
+    pairs.set(i, j); sel = null; update();
+  }
+  // Выбор нажатием: термин → определение (или наоборот); нажатие на соединённый элемент разъединяет пару
+  function pick(type, idx){
+    if(checked) return;
+    if(!sel){
+      if(type === 't' && pairs.has(idx)) pairs.delete(idx);
+      if(type === 'd' && termOf(idx) >= 0) pairs.delete(termOf(idx));
+      sel = {type, idx};
+    } else if(sel.type === type){
+      sel = sel.idx === idx ? null : {type, idx};
+    } else {
+      return type === 'd' ? link(sel.idx, idx) : link(idx, sel.idx);
+    }
+    update();
+  }
+  // Перетаскивание мышью или пальцем: тянем линию от термина к определению (или наоборот)
+  board.addEventListener('pointerdown', e => {
+    const it = e.target.closest('.m-item'); if(!it || checked) return;
+    const type = it.classList.contains('m-term') ? 't' : 'd';
+    drag = {type, idx: +(type === 't' ? it.dataset.t : it.dataset.d), x: e.clientX, y: e.clientY, moved: false, node: it};
+    try{ it.setPointerCapture(e.pointerId); }catch(err){}
+  });
+  board.addEventListener('pointermove', e => {
+    if(!drag) return;
+    if(!drag.moved && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 8) return;
+    drag.moved = true;
+    const b = board.getBoundingClientRect(), p = {x: e.clientX - b.left, y: e.clientY - b.top};
+    draw(drag.type === 't' ? {a: anchor(drag.node, 'r'), b: p} : {a: p, b: anchor(drag.node, 'l')});
+  });
+  board.addEventListener('pointerup', e => {
+    if(!drag) return;
+    const d = drag; drag = null;
+    if(!d.moved) return;                                 // это был обычный щелчок — его обработает click
+    suppress = true; setTimeout(() => { suppress = false; }, 0);
+    const hit = document.elementFromPoint(e.clientX, e.clientY), target = hit && hit.closest('.m-item');
+    if(target && board.contains(target)){
+      if(d.type === 't' && target.classList.contains('m-def')) return link(d.idx, +target.dataset.d);
+      if(d.type === 'd' && target.classList.contains('m-term')) return link(+target.dataset.t, d.idx);
+    }
+    draw();
+  });
+  board.addEventListener('pointercancel', () => { drag = null; draw(); });
+  board.addEventListener('click', e => {
+    const it = e.target.closest('.m-item'); if(!it || suppress) return;
+    if(it.classList.contains('m-term')) pick('t', +it.dataset.t); else pick('d', +it.dataset.d);
+  });
+
+  // Проверка: только теперь видно, какие пары верные
+  function check(){
+    const nameIn = w.querySelector('[name="student"]'), grpIn = w.querySelector('[name="grp"]');
+    const name = nameIn.value.replace(/\s+/g, ' ').trim(), group = grpIn.value.replace(/\s+/g, ' ').trim().toUpperCase();
+    if(name.length < 2){ toast('Введите фамилию и имя — результат попадёт в список'); nameIn.focus(); return; }
+    SS.set('acc_student', {name, group});
+    checked = true; sel = null; board.classList.add('locked'); nameIn.disabled = grpIn.disabled = true;
+    let ok = 0;
+    terms.forEach((t, i) => { const good = right(i); if(good) ok++; t.classList.add(good ? 'right' : 'wrong'); defs[pairs.get(i)].classList.add(good ? 'right' : 'wrong'); });
+    update();
+    const total = items.length, pct = Math.round(ok / total * 100), grade = pct >= 90 ? 5 : pct >= 70 ? 4 : pct >= 50 ? 3 : 2;
+    saveResult({name, group, kind:'match', test:'Соответствие: термины СУБД', ok, total, pct, grade, topics:'', date:new Date().toISOString()});
+    const res = w.querySelector('.match-result'); res.hidden = false;
+    res.innerHTML = md('### 🏁 Результат: ' + name + (group ? ', ' + group : '') + '\nПравильных пар: **' + ok + ' из ' + total + '** (' + pct + '%). Оценка: **' + grade + '**.' +
+      (ok === total ? '\n\n> Отлично! Все пары верные.' : '\n\nНеверные пары отмечены красным пунктиром.')) +
+      '<div class="chips">' + (ok < total ? '<button type="button" class="chip" data-m="answers">👁 Показать правильные ответы</button>' : '') +
+      '<button type="button" class="chip" data-m="again">🔁 Новое задание</button><button type="button" class="chip" data-act="results">📋 Результаты</button></div>';
+    res.querySelector('h4').insertAdjacentHTML('afterend', scoreChart(ok, total, grade, terms.map((t, i) => right(i))));
+    if(S.voiceOn) Speech.speakText('Правильных пар: ' + ok + ' из ' + total + '. Оценка ' + grade + '.', 'ru'); else Voice.afterBot();
+  }
+  w.addEventListener('click', e => {
+    const b = e.target.closest('[data-m]'); if(!b) return;
+    const m = b.dataset.m;
+    if(m === 'check') check();
+    else if(m === 'reset' && !checked){ pairs.clear(); sel = null; update(); }
+    else if(m === 'answers'){ showAnswers = true; b.remove(); update(); }
+    else if(m === 'again') startMatch();
+  });
+  if(window.ResizeObserver) new ResizeObserver(() => draw()).observe(board);
+  update();
 }
 
 /* --- Приветствие голосом при первом действии на странице
