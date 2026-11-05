@@ -196,6 +196,7 @@ button{font:inherit}
 .grp-h span{font-weight:500;color:var(--muted);font-size:13px}
 .grp ol{margin:0;padding:8px 12px 10px 34px;font-size:14.5px}
 .grp li{margin:2px 0}
+.link-mark{font-size:12px;opacity:.75}
 .grp.rolling ol{opacity:.5}
 .rand-note{font-size:12.5px;color:var(--muted);margin:8px 0 0}
 
@@ -2896,10 +2897,70 @@ function fairShuffle(a){
   for(let i = a.length - 1; i > 0; i--){ crypto.getRandomValues(r); const j = r[0] % (i + 1); [a[i], a[j]] = [a[j], a[i]]; }
   return a;
 }
-// Раздаём «по кругу» — размеры групп отличаются не больше чем на одного человека
-function splitGroups(names, k){
+function randInt(m){ const r = new Uint32Array(1); crypto.getRandomValues(r); return r[0] % m; }
+
+// «Всегда вместе» — видимые на экране связки: «Фамилия Имя + Фамилия Имя», по одной в строке
+const DEFAULT_PAIRS = 'Есеналиев Илья + Назаренко Роман\nВейберг Олег + Липский Леонид';
+// «Всегда в разных группах» — тоже видимые на экране пары
+const DEFAULT_APART = 'Вейберг Олег + Есеналиев Илья';
+// Строки «Фамилия Имя + Фамилия Имя» → списки найденных людей. Можно писать часть имени, если она однозначна («Роман»)
+function matchLines(text, names){
+  const lower = names.map(n => n.toLowerCase()), unknown = [];
+  const find = p => {
+    const q = p.toLowerCase(), i = lower.indexOf(q);
+    if(i >= 0) return names[i];
+    const c = names.filter((n, j) => lower[j].includes(q));
+    return c.length === 1 ? c[0] : null;
+  };
+  const lines = String(text).split(/\r?\n/).map(line => {
+    const found = [];
+    line.split(/[+,;]/).map(s => s.replace(/\s+/g, ' ').trim()).filter(Boolean)
+      .forEach(p => { const m = find(p); if(m){ if(!found.includes(m)) found.push(m); } else unknown.push(p); });
+    return found;
+  }).filter(b => b.length > 1);
+  return {lines, unknown};
+}
+// Связки «всегда вместе»; связки с общим человеком сливаются в одну
+function parseBundles(text, names){
+  const {lines: bundles, unknown} = matchLines(text, names);
+  for(let merged = true; merged;){
+    merged = false;
+    outer: for(let i = 0; i < bundles.length; i++) for(let j = i + 1; j < bundles.length; j++){
+      if(bundles[i].some(n => bundles[j].includes(n))){
+        bundles[i] = [...new Set(bundles[i].concat(bundles[j]))]; bundles.splice(j, 1); merged = true; break outer;
+      }
+    }
+  }
+  return {bundles, unknown};
+}
+
+// Поровну и случайно: размеры групп отличаются не больше чем на одного человека.
+// Связки «всегда вместе» и люди из пар «в разных группах» ставятся первыми — в случайную подходящую группу,
+// остальные распределяются случайно.
+function splitGroups(names, k, bundles, apart){
+  bundles = (bundles || []).filter(b => b.length > 1);
+  const linked = new Set(bundles.flat());
+  const enemies = new Map();                          // с кем человеку нельзя в одну группу
+  (apart || []).forEach(line => line.forEach(a => line.forEach(b => {
+    if(a !== b){ if(!enemies.has(a)) enemies.set(a, new Set()); enemies.get(a).add(b); }
+  })));
+  const base = Math.floor(names.length / k), extra = names.length % k;
+  const cap = fairShuffle(Array.from({length: k}, (_, i) => base + (i < extra ? 1 : 0)));
   const groups = Array.from({length: k}, () => []);
-  fairShuffle(names.slice()).forEach((n, i) => groups[i % k].push(n));
+  const idx = groups.map((_, i) => i), free = i => cap[i] - groups[i].length;
+  const roomiest = () => idx.reduce((m, i) => free(i) > free(m) ? i : m, 0);
+  const clash = (i, unit) => unit.some(n => enemies.has(n) && groups[i].some(m => enemies.get(n).has(m)));
+  const units = fairShuffle(bundles.slice())
+    .concat(fairShuffle(names.filter(n => !linked.has(n) && enemies.has(n))).map(n => [n]));
+  units.forEach(u => {
+    let fit = idx.filter(i => free(i) >= u.length && !clash(i, u));
+    if(!fit.length) fit = idx.filter(i => free(i) >= u.length);              // условия не выполнить — хотя бы поровну
+    groups[fit.length ? fit[randInt(fit.length)] : roomiest()].push(...u);
+  });
+  fairShuffle(names.filter(n => !linked.has(n) && !enemies.has(n))).forEach(n => {
+    const open = idx.filter(i => free(i) > 0);
+    groups[open.length ? open[0] : roomiest()].push(n);
+  });
   return groups.map(g => g.sort((a, b) => a.localeCompare(b, 'ru')));
 }
 function groupsText(groups){
@@ -2919,6 +2980,8 @@ function showRandomizer(autoGo){
   const w = document.createElement('div'); w.className = 'rand';
   w.innerHTML =
     '<label class="rand-list">Студенты: <b class="rand-count"></b><textarea rows="8" spellcheck="false"></textarea></label>' +
+    '<label class="rand-list">🔗 Всегда вместе — по одной связке в строке, имена через «+»<textarea class="rand-pairs" rows="2" spellcheck="false"></textarea></label>' +
+    '<label class="rand-list">🚫 Всегда в разных группах — по паре в строке, имена через «+»<textarea class="rand-apart" rows="1" spellcheck="false"></textarea></label>' +
     '<div class="rand-ctrl"><label>Групп: <select>' + [2, 3, 4, 5, 6].map(n => '<option' + (n === 3 ? ' selected' : '') + '>' + n + '</option>').join('') + '</select></label>' +
     '<button type="button" class="btn" data-r="go">🎲 Разделить</button>' +
     '<button type="button" class="btn-light" data-r="copy" disabled>📋 Копировать</button>' +
@@ -2929,30 +2992,45 @@ function showRandomizer(autoGo){
   const ta = w.querySelector('textarea'), sel = w.querySelector('select'), box = w.querySelector('.groups'), note = w.querySelector('.rand-note');
   let current = null, rolling = false;
   const count = () => { w.querySelector('.rand-count').textContent = parseStudents(ta.value).length + ' чел.'; };
-  const render = (groups, roll) => {
+  const render = (groups, roll, linked) => {
     box.innerHTML = groups.map((g, i) => '<div class="grp' + (roll ? ' rolling' : '') + '" style="--c:' + GROUP_COLORS[i % GROUP_COLORS.length] + '">' +
       '<div class="grp-h">Группа ' + (i + 1) + '<span>' + g.length + ' чел.</span></div>' +
-      '<ol>' + g.map(n => '<li>' + esc(n) + '</li>').join('') + '</ol></div>').join('');
+      '<ol>' + g.map(n => '<li>' + esc(n) + (linked && linked.has(n) ? ' <span class="link-mark" title="Всегда вместе">🔗</span>' : '') + '</li>').join('') + '</ol></div>').join('');
   };
   const enable = on => w.querySelectorAll('[data-r="copy"], [data-r="csv"]').forEach(b => { b.disabled = !on; });
   ta.value = loadStudents().join('\n'); count();
   ta.addEventListener('input', () => { count(); LS.set('acc_students', parseStudents(ta.value)); });
+  const pairsTa = w.querySelector('.rand-pairs');
+  pairsTa.value = LS.get('acc_pairs', DEFAULT_PAIRS);
+  pairsTa.addEventListener('input', () => LS.set('acc_pairs', pairsTa.value));
+  const apartTa = w.querySelector('.rand-apart');
+  apartTa.value = LS.get('acc_apart', DEFAULT_APART);
+  apartTa.addEventListener('input', () => LS.set('acc_apart', apartTa.value));
   const last = LS.get('acc_groups_last', null);
   if(last && Array.isArray(last.groups)){
-    current = last.groups; render(current); enable(true);
+    current = last.groups; render(current, false, new Set((last.bundles || []).flat())); enable(true);
     sel.value = String(current.length); note.textContent = 'Последнее деление: ' + fmtDate(last.date);
   }
   const go = () => {
     if(rolling) return;
     const names = parseStudents(ta.value), k = +sel.value;
     if(names.length < k) return toast('Студентов меньше, чем групп');
+    const {bundles, unknown} = parseBundles(pairsTa.value, names), linked = new Set(bundles.flat());
+    const ap = matchLines(apartTa.value, names);
+    // пара не может быть одновременно «вместе» и «в разных группах»
+    const apart = ap.lines.filter(l => !bundles.some(b => l.filter(n => b.includes(n)).length > 1));
+    if(apart.length < ap.lines.length) toast('Противоречие: одни и те же люди и «вместе», и «в разных группах» — такая пара пропущена', 5000);
+    const missing = unknown.concat(ap.unknown);
+    if(missing.length) toast('Не нашёл в списке: ' + missing.join(', '), 4500);
     rolling = true; enable(false); let frame = 0;
     const tick = () => {                                 // короткая «перетасовка» для наглядности
-      if(++frame < 10){ render(splitGroups(names, k), true); return setTimeout(tick, 70); }
-      current = splitGroups(names, k); render(current); rolling = false; enable(true);
+      if(++frame < 10){ render(splitGroups(names, k, bundles, apart), true, linked); return setTimeout(tick, 70); }
+      current = splitGroups(names, k, bundles, apart); render(current, false, linked); rolling = false; enable(true);
       const date = new Date().toISOString();
-      LS.set('acc_groups_last', {groups: current, date});
-      note.textContent = 'Разделено ' + fmtDate(date) + ': ' + names.length + ' чел. на ' + k + (k < 5 ? ' группы' : ' групп');
+      LS.set('acc_groups_last', {groups: current, bundles, date});
+      note.textContent = 'Разделено ' + fmtDate(date) + ': ' + names.length + ' чел. на ' + k + (k < 5 ? ' группы' : ' групп') +
+        (bundles.length ? '. Всегда вместе: ' + bundles.map(b => b.join(' + ')).join('; ') : '') +
+        (apart.length ? '. В разных группах: ' + apart.map(l => l.join(' и ')).join('; ') : '');
       if(S.voiceOn) Speech.speakText(current.map((g, i) => 'Группа ' + (i + 1) + ': ' + g.join(', ') + '.').join(' '), 'ru');
       else Voice.afterBot();
     };
@@ -2969,7 +3047,11 @@ function showRandomizer(autoGo){
       a.download = 'Группы студентов.csv'; document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 3000);
     }
-    else if(r === 'reset'){ ta.value = DEFAULT_STUDENTS.join('\n'); LS.set('acc_students', DEFAULT_STUDENTS.slice()); count(); }
+    else if(r === 'reset'){
+      ta.value = DEFAULT_STUDENTS.join('\n'); LS.set('acc_students', DEFAULT_STUDENTS.slice());
+      pairsTa.value = DEFAULT_PAIRS; LS.set('acc_pairs', DEFAULT_PAIRS);
+      apartTa.value = DEFAULT_APART; LS.set('acc_apart', DEFAULT_APART); count();
+    }
   });
   if(autoGo) go();
 }
