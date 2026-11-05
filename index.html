@@ -2328,7 +2328,9 @@ function quizQuestion(){
     '<span class="q-bar"><i style="width:' + (z.n / z.qs.length * 100) + '%"></i></span>' +
     '<span class="q-score">Верно: ' + z.ok + ' из ' + z.n + '</span></div>' +
     '<p class="q-text"><span class="snt">' + esc(it.q) + '</span></p>' +
-    it.o.map((t, i) => '<button type="button" class="q-opt" data-qopt="' + i + '"><b>' + 'АБВГ'[i] + '</b><span class="snt">' + esc(t) + '</span></button>').join('') +
+    // по просьбе преподавателя правильный вариант заканчивается точкой
+    it.o.map((t, i) => '<button type="button" class="q-opt" data-qopt="' + i + '"><b>' + 'АБВГ'[i] + '</b><span class="snt">' + esc(t) +
+      (i === it.a && !/[.!?…]$/.test(t) ? '.' : '') + '</span></button>').join('') +
     '<div class="q-expl" hidden></div>';
   el.querySelector('.bubble').insertAdjacentHTML('beforeend', actionsHtml('Тест · ' + z.student.name));
   chat.appendChild(el); scrollToMsg(el);
